@@ -45,7 +45,7 @@
       el('div', { class: 'bar' }, el('i', { style: `width:${DG.pct(st.overall, 1)}%` })));
     $('#summary').replaceChildren(
       overall,
-      card('Achievements', st.achDone, st.achTotal),
+      card('Secrets (achievements)', st.achDone, st.achTotal),
       card('Hard marks', st.hardMarks, st.totalMarks),
       card('Challenges', st.chalDone, st.chalTotal),
       card('Items', st.items, st.itemsTotal),
@@ -221,6 +221,7 @@
     const sc = +$('#ov-scale').value; if (sc && sc !== 1) p.set('scale', sc);
     if ($('#ov-bg').checked) p.set('bg', '1');
     if (!$('#ov-tainted').checked) p.set('tainted', '0');
+    if (!$('#ov-timer').checked) p.set('timer', '0');
     const room = DG.sync.getRoom(); if (room && !withCode) p.set('room', room);
     return base + 'overlay.html?' + p.toString() + (withCode ? '#code=' + DG.encode(state) : '');
   }
@@ -232,7 +233,7 @@
     const fr = $('#ov-preview');
     if (fr.dataset.src !== url) { fr.dataset.src = url; fr.src = url; }
   }
-  ['#ov-view', '#ov-scale', '#ov-bg', '#ov-tainted'].forEach((s) => $(s).addEventListener('input', renderOverlayBuilder));
+  ['#ov-view', '#ov-scale', '#ov-bg', '#ov-tainted', '#ov-timer'].forEach((s) => $(s).addEventListener('input', renderOverlayBuilder));
   async function copy(text, msg) {
     try { await navigator.clipboard.writeText(text); toast(msg); } catch (_) { prompt('Copy this link:', text); }
   }
@@ -247,6 +248,98 @@
     if (name === 'overlay') renderOverlayBuilder();
   }
   document.querySelector('nav.tabs').addEventListener('click', (e) => { const b = e.target.closest('button[data-tab]'); if (b) showTab(b.dataset.tab); });
+
+  // ---------- timer ----------
+  function renderTimer() {
+    const ms = DG.timerMs(state), run = state.timer.running, txt = DG.fmtTime(ms);
+    $('#htime').textContent = txt; $('#run-time').textContent = txt;
+    $('#htimer').classList.toggle('running', run); $('#run-time').classList.toggle('running', run);
+    const label = run ? 'Pause' : ms ? 'Resume' : 'Start';
+    $('#htoggle').textContent = label; $('#t-toggle').textContent = label;
+    const st = DG.stats(state);
+    $('#run-session').textContent = (state.timer.sessions ? `Session ${state.timer.sessions}${state.timer.ended ? ' ended' : ''}` : 'Not started') +
+      (state.ach[637] ? ' · Dead God! Timer stopped.' : '');
+  }
+  function toggleTimer() {
+    if (state.timer.running) DG.timerPause(state); else DG.timerStart(state);
+    commit();
+  }
+  $('#htoggle').addEventListener('click', toggleTimer);
+  $('#t-toggle').addEventListener('click', toggleTimer);
+  $('#t-end').addEventListener('click', () => {
+    DG.timerPause(state);
+    const st = DG.stats(state);
+    state.timer.ended = true; // the next Start begins a new session
+    commit();
+    toast(`Session ended at ${DG.fmtTime(DG.timerMs(state))}. Now show the Secrets menu on stream: it should read ${st.achDone} / ${st.achTotal}.`, null, 15000);
+  });
+  $('#t-reset').addEventListener('click', () => {
+    if (!confirm('Reset the timer to 0:00? (Progress is not touched.)')) return;
+    state.timer = DG.emptyTimer(); commit('Timer reset');
+  });
+  setInterval(() => { if (state.timer.running) renderTimer(); }, 100);
+
+  // ---------- this run ----------
+  let diff = 2;
+  try { diff = +localStorage.getItem('deadgod-tracker:diff') === 1 ? 1 : 2; } catch (_) { /* ignore */ }
+  function renderCharPick() {
+    $('#char-pick').replaceChildren(...DG.CHARACTERS.map((c, ci) => {
+      const hard = DG.BOSSES.filter((_, bi) => DG.getMark(state, ci, bi) === 2).length;
+      const unlocked = DG.todo.charUnlocked(state, ci);
+      return el('button', {
+        class: (c.tainted ? 't ' : '') + (state.current === ci ? 'sel ' : '') + (unlocked ? '' : 'locked'),
+        title: unlocked ? c.name : c.name + ' (not unlocked yet)',
+        onclick: () => { state.current = state.current === ci ? null : ci; commit(); },
+      }, c.tainted ? 'T. ' + c.name.replace(/^Tainted /, '') : c.name, el('small', { textContent: `${hard}/12 hard` }));
+    }));
+  }
+  function focusRewards(f) {
+    if (!f.rewards.length) return el('p', { class: 'hint', textContent: 'No mark rewards left for this character.' });
+    return el('ul', { class: 'reward-list' }, f.rewards.map((r) => el('li', {}, el('b', { textContent: r.name }), ' – ' + r.how)));
+  }
+  function renderRunPanel() {
+    const ci = state.current, box = $('#run-panel');
+    if (ci == null) { box.replaceChildren(el('p', { class: 'hint', textContent: 'Pick the character you are playing to get big buttons for each boss.' })); return; }
+    const f = DG.todo.focus(state, ci);
+    const sw = el('div', { class: 'diff-switch' },
+      el('button', { class: diff === 1 ? 'on' : '', textContent: 'Normal', onclick: () => setDiff(1) }),
+      el('button', { class: diff === 2 ? 'on' : '', textContent: 'Hard', onclick: () => setDiff(2) }));
+    const btns = DG.BOSSES.map((b, bi) => {
+      const l = DG.getMark(state, ci, bi);
+      const lvlName = (x) => (b.id === 'greed' ? ['–', 'Greed', 'Greedier'] : ['–', 'Normal', 'Hard'])[x];
+      return el('button', { class: 'boss-btn', dataset: { l }, onclick: () => tapBoss(ci, bi) },
+        b.name, el('small', { textContent: l ? 'Done: ' + lvlName(l) : 'Not done' }));
+    });
+    box.replaceChildren(...[
+      el('div', { class: 'row' }, el('h3', { style: 'margin:0;flex:1', textContent: f.c.name }), sw),
+      f.lock ? el('p', { class: 'hint', textContent: `🔒 Not unlocked yet: ${f.lock.unlock}` }) : null,
+      el('p', { class: 'hint', textContent: 'Tap a boss when you beat it. It counts at the difficulty chosen above and never lowers a mark you already have.' }),
+      el('div', { class: 'boss-grid' }, btns),
+      el('h3', { textContent: `Still to unlock as ${f.c.name}` }), focusRewards(f)].filter(Boolean));
+  }
+  function setDiff(d) { diff = d; try { localStorage.setItem('deadgod-tracker:diff', d); } catch (_) { /* ignore */ } renderRunPanel(); }
+  function tapBoss(ci, bi) {
+    const cur = DG.getMark(state, ci, bi);
+    if (cur >= diff) { toast('Already done at this difficulty'); return; }
+    const backup = JSON.parse(JSON.stringify(state));
+    const added = DG.setMark(state, ci, bi, diff);
+    commit();
+    const b = DG.BOSSES[bi];
+    toast(`${b.name} ✓` + (added.length ? ` · unlocked ${added.map((id) => DG.ACH_BY_ID.get(id).name).join(', ')}` : ''),
+      { label: 'Undo', run: () => { state = backup; commit('Undone'); } }, 8000);
+  }
+  function renderFocusCard() {
+    const box = $('#todo-focus'), ci = state.current;
+    box.hidden = ci == null;
+    if (ci == null) return;
+    const f = DG.todo.focus(state, ci);
+    box.replaceChildren(
+      el('div', { class: 'row', style: 'margin:0' }, el('h3', { style: 'flex:1;margin:0', textContent: `Playing ${f.c.name}` }),
+        el('button', { class: 'go', textContent: 'This run →', onclick: () => showTab('run') })),
+      el('p', { class: 'hint', textContent: f.lock ? `🔒 Unlock first: ${f.lock.unlock}` : f.missing.length
+        ? 'Hard marks still needed: ' + f.missing.map((m) => m.b.name).join(', ') : 'All 12 hard marks done. Pick your next character.' }),
+      focusRewards(f));
+  }
 
   // ---------- to-do ----------
   const TAB_NAMES = { marks: 'Marks', achievements: 'List', items: 'Items', challenges: 'Challenges' };
@@ -290,6 +383,7 @@
   });
 
   function renderAll() {
+    renderTimer(); renderCharPick(); renderRunPanel(); renderFocusCard();
     renderTodo();
     renderSummary(); renderMarks(); renderAchievements(); renderChallenges(); renderSettings();
   }

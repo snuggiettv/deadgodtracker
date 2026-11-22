@@ -112,7 +112,16 @@
 
   // ---- state ----
   function emptyState() {
-    return { v: 1, ach: {}, marks: {}, items: 0, itemsTotal: 719, repPlus: true, autoLink: true, updated: 0 };
+    return {
+      v: 1, ach: {}, marks: {}, items: 0, itemsTotal: 719, repPlus: true, autoLink: true, updated: 0,
+      current: null, // index of the character being played right now
+      timer: emptyTimer(),
+    };
+  }
+  function emptyTimer() { return { running: false, elapsed: 0, startedAt: 0, sessions: 0, ended: false }; }
+  function normTimer(t) {
+    if (!t || typeof t !== 'object') return emptyTimer();
+    return { running: !!t.running, elapsed: Math.max(0, +t.elapsed || 0), startedAt: +t.startedAt || 0, sessions: Math.max(0, +t.sessions || 0), ended: !!t.ended };
   }
   function normalize(s) {
     const e = emptyState();
@@ -126,7 +135,26 @@
       repPlus: s.repPlus !== false,
       autoLink: s.autoLink !== false,
       updated: +s.updated || 0,
+      current: Number.isInteger(s.current) && s.current >= 0 && s.current < CHARACTERS.length ? s.current : null,
+      timer: normTimer(s.timer),
     };
+  }
+  // Speedrun timer (milliseconds). Runs between Start and Pause; pausing is allowed only between runs.
+  function timerMs(s, now = Date.now()) {
+    const t = s.timer;
+    return t.elapsed + (t.running && t.startedAt ? Math.max(0, now - t.startedAt) : 0);
+  }
+  function timerStart(s) {
+    const t = s.timer;
+    if (t.running) return;
+    t.running = true; t.startedAt = Date.now();
+    if (!t.sessions || t.ended) { t.sessions = (t.sessions || 0) + 1; t.ended = false; } // a new stream = a new session
+  }
+  function timerPause(s) { if (s.timer.running) { s.timer.elapsed = timerMs(s); s.timer.running = false; s.timer.startedAt = 0; } }
+  function fmtTime(ms, tenths = true) {
+    const t = Math.floor(ms / 100), d = t % 10, sec = Math.floor(t / 10) % 60, min = Math.floor(t / 600) % 60, h = Math.floor(t / 36000);
+    const p2 = (n) => String(n).padStart(2, '0');
+    return (h ? h + ':' + p2(min) : String(min)) + ':' + p2(sec) + (tenths ? '.' + d : '');
   }
   function load() {
     try { return normalize(JSON.parse(localStorage.getItem(STORAGE_KEY))); } catch (_) { return emptyState(); }
@@ -136,6 +164,7 @@
   // keepTime: store a state that came from another device without restamping it.
   function save(state, keepTime) {
     if (!keepTime) state.updated = Date.now();
+    if (state.ach[637] && state.timer && state.timer.running) timerPause(state); // the run ends when Dead God pops
     try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch (_) { /* storage blocked */ }
     if (channel) channel.postMessage(state.updated);
   }
@@ -193,7 +222,7 @@
 
   window.DG = {
     STORAGE_KEY, CHARACTERS, BOSSES, ACHIEVEMENTS, ACH_BY_ID, CATEGORIES, MARK_RULES,
-    load, save, normalize, emptyState, onExternalChange, getMark, setMark, applyRules,
+    load, save, normalize, emptyState, emptyTimer, timerMs, timerStart, timerPause, fmtTime, onExternalChange, getMark, setMark, applyRules,
     activeAchievements, stats, pct,
   };
 })();
@@ -205,8 +234,9 @@
   const MAX_ID = 641;
   function encode(s) {
     const markCount = DG.CHARACTERS.length * DG.BOSSES.length;
-    const bytes = new Uint8Array(6 + Math.ceil(MAX_ID / 8) + Math.ceil(markCount / 4));
-    bytes[0] = 1;
+    const core = 6 + Math.ceil(MAX_ID / 8) + Math.ceil(markCount / 4);
+    const bytes = new Uint8Array(core + 20);
+    bytes[0] = 2;
     bytes[1] = (s.repPlus ? 1 : 0) | (s.autoLink ? 2 : 0);
     bytes[2] = s.items >> 8; bytes[3] = s.items & 255;
     bytes[4] = s.itemsTotal >> 8; bytes[5] = s.itemsTotal & 255;
@@ -217,6 +247,13 @@
     for (let ci = 0; ci < DG.CHARACTERS.length; ci++) for (let bi = 0; bi < DG.BOSSES.length; bi++, k++) {
       bytes[o + (k >> 2)] |= DG.getMark(s, ci, bi) << ((k & 3) * 2);
     }
+    // v2 extras: current character, timer
+    const dv = new DataView(bytes.buffer, core);
+    dv.setUint8(0, s.current == null ? 255 : s.current);
+    dv.setUint8(1, (s.timer.running ? 1 : 0) | (s.timer.ended ? 2 : 0));
+    dv.setFloat64(2, s.timer.elapsed);
+    dv.setFloat64(10, s.timer.startedAt);
+    dv.setUint16(18, Math.min(65535, s.timer.sessions));
     let bin = ''; bytes.forEach((b) => (bin += String.fromCharCode(b)));
     return btoa(bin).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
   }
@@ -225,7 +262,7 @@
     if (code.startsWith('{')) return DG.normalize(JSON.parse(code)); // accept JSON backups too
     const bin = atob(code.replace(/-/g, '+').replace(/_/g, '/'));
     const b = Uint8Array.from(bin, (c) => c.charCodeAt(0));
-    if (b[0] !== 1) throw new Error('Unknown save code version');
+    if (b[0] !== 1 && b[0] !== 2) throw new Error('Unknown save code version');
     const s = DG.emptyState();
     s.repPlus = !!(b[1] & 1); s.autoLink = !!(b[1] & 2);
     s.items = (b[2] << 8) | b[3]; s.itemsTotal = (b[4] << 8) | b[5] || s.itemsTotal;
@@ -236,6 +273,12 @@
     for (let ci = 0; ci < DG.CHARACTERS.length; ci++) for (let bi = 0; bi < DG.BOSSES.length; bi++, k++) {
       const l = (b[o + (k >> 2)] >> ((k & 3) * 2)) & 3;
       if (l) s.marks[ci + ':' + DG.BOSSES[bi].id] = Math.min(l, 2);
+    }
+    o += Math.ceil((DG.CHARACTERS.length * DG.BOSSES.length) / 4);
+    if (b[0] === 2 && b.length >= o + 20) {
+      const dv = new DataView(b.buffer, o);
+      const cur = dv.getUint8(0); s.current = cur < DG.CHARACTERS.length ? cur : null;
+      s.timer = { ended: !!(dv.getUint8(1) & 2), running: (dv.getUint8(1) & 1) === 1, elapsed: dv.getFloat64(2) || 0, startedAt: dv.getFloat64(10) || 0, sessions: dv.getUint16(18) };
     }
     return s;
   }

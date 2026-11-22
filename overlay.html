@@ -47,6 +47,17 @@
   .next li::before { content: "▸"; color: var(--accent); }
   .next li span { flex: 1; }
   .next li small { color: var(--muted); font-variant-numeric: tabular-nums; }
+  .tm { font-family: ui-monospace, Menlo, Consolas, monospace; font-variant-numeric: tabular-nums; }
+  .tm.on { color: #9fe07a; }
+  .tview { min-width: 260px; }
+  .tview .big { font-size: 54px; margin: 4px 0 0; }
+  .runv { min-width: 340px; }
+  .runv .rname { font-size: 34px; font-weight: 800; margin: 2px 0 8px; }
+  .rcells { display: grid; grid-template-columns: repeat(6, 1fr); gap: 5px; }
+  .rc { height: 30px; border-radius: 7px; background: #0009; border: 1px solid #ffffff22; display: grid; place-items: center; font-size: 13px; font-weight: 700; color: #ffffff88; }
+  .rc.l1 { background: var(--silver); color: #222; text-shadow: none; }
+  .rc.l2 { background: var(--gold); color: #2b1d00; text-shadow: none; box-shadow: 0 0 6px #f0c04f88; }
+  .rfoot { display: flex; justify-content: space-between; gap: 16px; margin-top: 10px; font-size: 18px; color: var(--muted); }
   .flash { animation: flash 1.2s ease; }
   @keyframes flash { 0% { filter: brightness(1.8); } 100% { filter: none; } }
 </style>

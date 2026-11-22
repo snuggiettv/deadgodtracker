@@ -16,6 +16,9 @@
   // Mom's Heart kill-count achievements, in order (2 … 11 kills).
   const HEART_KILLS = [150, 8, 139, 33, 140, 141, 10, 11, 32, 234, 34];
 
+  const POWER_CHALLENGES = [2, 6, 10, 17, 18, 3, 5, 8];
+  // Shop Donation Machine milestones up to 600 coins (10, 20, 50, 100, 150, 200, 400, 600).
+  const SHOP_TO_600 = [134, 151, 135, 152, 136, 153, 137, 154];
   const has = (s, id) => !!s.ach[id];
   const ach = (id) => DG.ACH_BY_ID.get(id);
 
@@ -74,13 +77,21 @@
     phase('tainted', 'Tainted characters', 'Use the Red Key on the closet in Home as each character to unlock their tainted version, then earn their marks.',
       DG.CHARACTERS.map((c, ci) => (c.tainted ? markTask(s, ci) : null)).filter(Boolean).sort(byProgress));
 
-    const chal = DG.ACHIEVEMENTS.filter((a) => a.challenge).sort((a, b) => a.challenge - b.challenge);
+    // Early power unlocks: strong challenge rewards and shop upgrades make every later run easier
+    // (order suggested by community unlock guides, e.g. whisperofthehouse.com).
+    const chalById = (n) => DG.ACHIEVEMENTS.find((a) => a.challenge === n);
+    phase('power', 'Early power unlocks', 'Strong challenge rewards and a better shop make every later run faster. Do these as soon as the challenges open up.', [
+      ...POWER_CHALLENGES.map((n) => { const a = chalById(n); return achTask(s, a.id, { title: `Challenge #${n} ${a.challengeName}`, detail: 'Reward: ' + a.name }); }),
+      groupTask(s, 'shop600', 'Shop Donation Machine to 600 coins', SHOP_TO_600, 'Unlocks the shop upgrades and better candles along the way', 'achievements'),
+    ]);
+
+    const chal = DG.ACHIEVEMENTS.filter((a) => a.challenge && !POWER_CHALLENGES.includes(a.challenge)).sort((a, b) => a.challenge - b.challenge);
     phase('challenges', 'Challenges', 'Some challenges stay locked until you unlock things first. The game shows which ones you can play.',
       chal.map((a) => achTask(s, a.id, { title: `#${a.challenge} ${a.challengeName}`, detail: 'Reward: ' + a.name })));
 
     const ofCat = (cat) => DG.ACHIEVEMENTS.filter((a) => a.category === cat && active.has(a.id)).map((a) => a.id);
     phase('grind', 'Donations, counters and grinds', 'These build up over many runs, so keep them in mind every run.', [
-      groupTask(s, 'donate', 'Donation machines', ofCat('donation'), 'Shop Donation Machine up to 999 coins, Greed Donation Machine up to 1000', 'achievements'),
+      groupTask(s, 'donate', 'Donation machines (the rest)', ofCat('donation').filter((id) => !SHOP_TO_600.includes(id)), 'Shop Donation Machine to 999 coins, Greed Donation Machine to 1000', 'achievements'),
       ...ofCat('grind').map((id) => achTask(s, id)),
     ]);
 
@@ -94,6 +105,8 @@
       achTask(s, 636), achTask(s, 637),
     ]);
 
+    const ORDER = ['start', 'power', 'chars', 'marks', 'tainted', 'challenges', 'grind', 'secrets', 'final'];
+    phases.sort((a, b) => ORDER.indexOf(a.id) - ORDER.indexOf(b.id));
     for (const p of phases) {
       p.total = p.items.length;
       p.doneCount = p.items.filter((t) => t.done).length;
@@ -118,5 +131,16 @@
     return out;
   }
 
-  DG.todo = { build, nextUp };
+  // Everything still to get as one character: missing hard marks and the achievements they unlock.
+  function focus(s, ci) {
+    const c = DG.CHARACTERS[ci];
+    const unlocked = charUnlocked(s, ci);
+    const missing = DG.BOSSES.map((b, bi) => ({ b, bi, l: DG.getMark(s, ci, bi) })).filter((m) => m.l < 2);
+    const rewards = DG.MARK_RULES.filter((r) => r.chars.length === 1 && r.chars[0] === ci && !has(s, r.id))
+      .map((r) => ({ id: r.id, name: ach(r.id).name, how: ach(r.id).unlock }));
+    const lockId = c.tainted ? TAINTED_UNLOCK_START + (ci - BASE_COUNT) : CHAR_UNLOCK[c.id];
+    return { c, unlocked, lock: unlocked || !lockId ? null : ach(lockId), missing, rewards };
+  }
+
+  DG.todo = { build, nextUp, focus, charUnlocked };
 })();

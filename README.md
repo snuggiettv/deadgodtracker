@@ -9,7 +9,8 @@ progress on stream with an OBS / Meld browser-source overlay. No build step, no 
   all 641 achievements with search and filters, the 45 challenges, collection-page item count,
   backup/restore and the overlay link builder.
 - `overlay.html` – the stream overlay. Options in the URL:
-  - `view=summary` (default) · `bar` · `marks` · `remaining` · `next` (to-do, `&count=4`)
+  - `view=summary` (default) · `bar` · `marks` · `remaining` · `next` (to-do, `&count=4`) · `timer` · `run` (current character + marks + timer)
+  - `timer=0` to hide the timer in the summary
   - `scale=1.5` to resize, `bg=1` for a dark backdrop (default is transparent), `tainted=0` to hide tainted rows in the grid
   - `room=…` to follow a sync room
   - `#code=…` to show a frozen snapshot from a save code instead of this browser's progress

@@ -13,6 +13,10 @@
   <header class="top">
     <h1 class="brand">Dead God <span>Tracker</span></h1>
     <div class="sub">Manual checklist for console runs. Saved in this browser.</div>
+    <div class="htimer" id="htimer">
+      <span class="htime" id="htime">0:00.0</span>
+      <button class="primary" id="htoggle">Start</button>
+    </div>
     <button class="reset-btn" id="reset-top" title="Clear all progress">Reset</button>
   </header>
 
@@ -20,6 +24,7 @@
 
   <nav class="tabs" role="tablist">
     <button role="tab" data-tab="todo" aria-selected="true">To-do</button>
+    <button role="tab" data-tab="run">This run</button>
     <button role="tab" data-tab="marks">Completion marks</button>
     <button role="tab" data-tab="achievements">Achievements</button>
     <button role="tab" data-tab="challenges">Challenges</button>
@@ -28,6 +33,7 @@
   </nav>
 
   <section id="tab-todo">
+    <div class="card focus-card" id="todo-focus" hidden></div>
     <div class="card next-card">
       <h3>Next up</h3>
       <div id="todo-next"></div>
@@ -38,6 +44,27 @@
     </div>
     <div id="todo-phases"></div>
     <p class="hint">The order is a common Dead God route, not the only one. Everything here updates as you tick marks and achievements.</p>
+  </section>
+
+  <section id="tab-run" hidden>
+    <div class="grid2 run-top">
+      <div class="card">
+        <h3>Speedrun timer</h3>
+        <div class="big-time" id="run-time">0:00.0</div>
+        <div class="hint" id="run-session"></div>
+        <div class="row">
+          <button class="primary" id="t-toggle">Start</button>
+          <button id="t-end">End session</button>
+          <button id="t-reset">Reset timer</button>
+        </div>
+        <p class="hint">DeadGod% rules: the timer starts with your first run and stops when Dead God pops (it stops itself when you tick it). Pause only between runs. At the end of each stream, show the in-game Secrets menu.</p>
+      </div>
+      <div class="card">
+        <h3>Who are you playing?</h3>
+        <div class="char-pick" id="char-pick"></div>
+      </div>
+    </div>
+    <div class="card" id="run-panel"></div>
   </section>
 
   <section id="tab-marks" hidden>
@@ -144,6 +171,8 @@
               <option value="marks">Completion mark grid</option>
               <option value="remaining">What's left</option>
               <option value="next">Next up (to-do)</option>
+              <option value="timer">Timer only</option>
+              <option value="run">This run (character + marks + timer)</option>
             </select>
           </label>
           <label class="inline">Scale <input type="number" id="ov-scale" value="1" step="0.1" min="0.3" max="4"></label>
@@ -151,6 +180,7 @@
         <div class="row">
           <label class="inline"><input type="checkbox" id="ov-bg"> Dark backdrop (off = transparent)</label>
           <label class="inline"><input type="checkbox" id="ov-tainted" checked> Include tainted (grid)</label>
+          <label class="inline"><input type="checkbox" id="ov-timer" checked> Show timer (summary)</label>
         </div>
         <div class="url-box"><input id="ov-url" readonly><button class="primary" id="ov-copy">Copy</button></div>
         <h3>OBS (ticks show up live)</h3>
