@@ -100,10 +100,15 @@
         <div id="sync-off">
           <p class="hint">Tick on your phone, in Meld or in any browser, and the overlay follows within a second or two. No account needed: progress goes through <a href="https://ntfy.sh" target="_blank" rel="noopener">ntfy.sh</a>, a free public relay, under a random room name. Anyone who has your room link can see and change your progress, so keep it to yourself.</p>
           <button class="primary" id="sync-start">Turn on sync</button>
+          <p class="hint">Already have a room code (for example from the streamer you help)?</p>
+          <div class="url-box"><input id="sync-join-code" placeholder="Paste room code" autocomplete="off" spellcheck="false"><button id="sync-join">Join</button></div>
         </div>
         <div id="sync-on" hidden>
-          <p class="hint">Open this link on your other devices to join. The overlay link on the Overlay setup tab includes the room automatically.</p>
-          <div class="url-box"><input id="sync-link" readonly><button class="primary" id="sync-copy">Copy</button></div>
+          <div class="room-label">Room code</div>
+          <div class="room-code"><code id="sync-room"></code><button id="sync-copy-code">Copy code</button></div>
+          <p class="hint">Editor link: open it on your phone or other browsers, or send it to a mod so they can tick progress for you during runs. Anyone with it can change your progress, so share it only with people you trust. Never put it on stream.</p>
+          <div class="url-box"><input id="sync-link" readonly><button class="primary" id="sync-copy">Copy editor link</button></div>
+          <p class="hint">The overlay link on the Overlay setup tab uses the same room. It's view-only.</p>
           <div class="row"><button id="sync-leave">Turn off sync on this device</button></div>
         </div>
       </div>

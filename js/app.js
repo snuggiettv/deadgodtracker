@@ -312,11 +312,20 @@
     const room = DG.sync.getRoom();
     $('#sync-off').hidden = !!room; $('#sync-on').hidden = !room;
     if (!room) $('#sync-status').textContent = 'off';
-    if (room) $('#sync-link').value = syncLink(room);
+    if (room) { $('#sync-link').value = syncLink(room); $('#sync-room').textContent = room; }
     renderOverlayBuilder();
   }
   $('#sync-start').addEventListener('click', () => { startSync(DG.sync.newRoom()); toast('Sync is on. Open the link on your other devices.'); });
-  $('#sync-copy').addEventListener('click', () => copy(syncLink(DG.sync.getRoom()), 'Sync link copied'));
+  $('#sync-copy').addEventListener('click', () => copy(syncLink(DG.sync.getRoom()), 'Editor link copied'));
+  $('#sync-copy-code').addEventListener('click', () => copy(DG.sync.getRoom(), 'Room code copied'));
+  $('#sync-join').addEventListener('click', () => {
+    let code = $('#sync-join-code').value.trim().toLowerCase();
+    const m = /room=([a-z0-9]+)/.exec(code); if (m) code = m[1]; // accept a pasted editor link too
+    if (!DG.sync.validRoom(code)) { toast('That room code doesn\'t look right'); return; }
+    if (!confirm('Join this room? Progress on this device will be replaced by the room\'s progress.')) return;
+    state.updated = 0; DG.save(state, true);
+    startSync(code); toast('Joined the room');
+  });
   $('#sync-leave').addEventListener('click', () => {
     if (sync) sync.close(); sync = null; DG.sync.setRoom(null); renderSync(); toast('Sync is off on this device');
   });
