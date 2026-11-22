@@ -34,6 +34,9 @@ Ticking a completion mark auto-ticks the achievements it unlocks (can be turned 
 ## Hosting on GitHub Pages
 Push this folder to a repo, then Settings → Pages → Deploy from branch → `main` / root.
 
+## Contact
+Suggestions, feature requests and bug reports are welcome: **@Snuggie** on Discord or [**@akaSnuggie**](https://x.com/akaSnuggie) on X/Twitter.
+
 ## Credits
 The To-do route is adapted from D0ggy's and neonomi's DeadGod% Repentance+ split sheet (tips paraphrased).
 

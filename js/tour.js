@@ -12,7 +12,8 @@
     { tab: 'challenges', target: '[data-tab="challenges"]', title: 'Challenges', body: 'The 45 challenges and their rewards. Ticking one here ticks its reward achievement too.' },
     { tab: 'items', target: '#sync-card', title: 'Sync, mods and backups', body: 'Turn on sync to link your phone, other browsers and the overlay. You\'ll get a room code and an editor link for a mod. Keep both private and off stream. This tab also has the item counter, settings and backups.' },
     { tab: 'overlay', target: '[data-tab="overlay"]', title: 'Overlay setup', body: 'Pick a view (summary, progress bar, mark grid, next up, timer, this run), copy the link, and add it as a browser source in OBS or Meld. The preview shows what viewers will see.' },
-    { target: '#htimer', title: 'Timer and Reset', body: 'The speedrun timer is always up here. Reset clears your progress, asks first, and gives you 15 seconds to undo. That\'s it, good luck on the road to Dead God!' },
+    { target: '#htimer', title: 'Timer and Reset', body: 'The speedrun timer is always up here. Reset clears your progress, asks first, and gives you 15 seconds to undo.' },
+    { target: '#contact', title: 'Suggestions or bugs?', body: 'Ideas and bug reports are welcome! Reach Snuggie on Discord: @Snuggie, or on X/Twitter: @akaSnuggie. Good luck on the road to Dead God!' },
   ];
 
   let i = 0, root = null, lastHl = [];
@@ -78,12 +79,14 @@
   function open() {
     if (!root) build();
     root.hidden = false;
+    document.body.classList.add('touring');
     root.querySelector('.tour-dont input').checked = seen();
     go(0);
   }
   function close() {
     if (!root) return;
     root.hidden = true;
+    document.body.classList.remove('touring');
     lastHl.forEach((el) => el.classList.remove('tour-hl'));
     lastHl = [];
     const todo = $('nav.tabs [data-tab="todo"]'); if (todo) todo.click();

@@ -201,3 +201,7 @@ details.phase .pnote { color: var(--muted); font-size: .88rem; margin: 0 14px 8p
   .tour-nav .tour-dont { order: 3; flex-basis: 100%; }
   .tour-nav .tour-prev, .tour-nav .tour-next { flex: 1; }
 }
+.contact { margin-top: 24px; border-color: #5b4512; }
+.contact h3 { margin: 0 0 6px; color: var(--gold); }
+.contact p { margin: 0; }
+body.touring { padding-bottom: 340px; }
