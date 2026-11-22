@@ -5,7 +5,7 @@ made for console players who can't read a save file. Tick things off in the brow
 progress on stream with an OBS / Meld browser-source overlay. No build step, no server.
 
 ## Pages
-- `index.html` – the checklist: a To-do roadmap of what to work on next, completion-mark grid (34 characters × 12 marks, normal/hard),
+- `index.html` – the checklist (a first-visit tour explains each tab; the ? button replays it): a To-do roadmap of what to work on next, completion-mark grid (34 characters × 12 marks, normal/hard),
   all 641 achievements with search and filters, the 45 challenges, collection-page item count,
   backup/restore and the overlay link builder.
 - `overlay.html` – the stream overlay. Options in the URL:

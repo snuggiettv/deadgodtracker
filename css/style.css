@@ -174,3 +174,30 @@ details.phase .pnote { color: var(--muted); font-size: .88rem; margin: 0 14px 8p
   .stat .label { font-size: .7rem; }
 }
 .task.optional .tt::after { content: " (optional)"; color: var(--muted); font-weight: 400; font-size: .85rem; }
+
+/* help + tour */
+.help-btn { width: 36px; height: 36px; padding: 0; border-radius: 50%; font-weight: 700; color: var(--gold); border-color: #5b4512; }
+.htimer ~ .help-btn { margin-left: 0; }
+.tour[hidden] { display: none; }
+.tour-backdrop { position: fixed; inset: 0; background: #000a; z-index: 50; }
+.tour-hl { position: relative; z-index: 51; outline: 3px solid var(--gold); outline-offset: 4px; border-radius: 10px; background: var(--panel); box-shadow: 0 0 0 9999px transparent; }
+.tour-card {
+  position: fixed; z-index: 52; left: 50%; bottom: 20px; transform: translateX(-50%);
+  width: min(460px, calc(100% - 24px)); background: var(--panel-2); border: 1px solid var(--gold);
+  border-radius: 14px; padding: 16px 18px; box-shadow: 0 12px 40px #000c;
+}
+.tour-top { display: flex; justify-content: space-between; align-items: center; color: var(--muted); font-size: .8rem; }
+.tour-x { border: 0; background: none; padding: 2px 6px; font-size: 1rem; color: var(--muted); }
+.tour-card h3 { margin: 4px 0 6px; color: var(--gold); }
+.tour-body { margin: 0 0 12px; }
+.tour-dots { display: flex; gap: 6px; justify-content: center; margin-bottom: 12px; }
+.tour-dot { width: 9px; height: 9px; padding: 0; border-radius: 50%; background: var(--line); border: 0; }
+.tour-dot.on { background: var(--gold); }
+.tour-nav { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.tour-nav .tour-dont { flex: 1; justify-content: center; display: inline-flex; gap: 6px; align-items: center; color: var(--muted); font-size: .85rem; }
+.tour-nav button:disabled { opacity: .4; cursor: default; }
+@media (max-width: 560px) {
+  .tour-card { bottom: 10px; padding: 14px; }
+  .tour-nav .tour-dont { order: 3; flex-basis: 100%; }
+  .tour-nav .tour-prev, .tour-nav .tour-next { flex: 1; }
+}
