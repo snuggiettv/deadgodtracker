@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dead God Overlay</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Grandstander:wght@500;700;800&display=swap" rel="stylesheet">
+<style>
+  :root { color-scheme: dark; --text: #fff4e4; --muted: #d6c4ab; --accent: #e0483c; --gold: #f0c04f; --silver: #c9d1da; --scale: 1; }
+  html, body { margin: 0; background: transparent; overflow: hidden; }
+  body {
+    color: var(--text); font-family: "Grandstander", "Comic Sans MS", system-ui, sans-serif;
+    text-shadow: 0 2px 0 #000, 0 0 6px #000a;
+  }
+  #root { transform: scale(var(--scale)); transform-origin: top left; display: inline-block; padding: 10px; }
+  .bg #root > * { background: rgba(18, 13, 10, .82); border: 2px solid #3c2e24; border-radius: 14px; box-shadow: 0 6px 20px #0008; }
+  .panel { padding: 14px 18px; min-width: 300px; }
+  .title { font-size: 15px; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); font-weight: 700; }
+  .big { font-size: 48px; font-weight: 800; line-height: 1; margin: 2px 0 8px; font-variant-numeric: tabular-nums; }
+  .big small { font-size: 24px; color: var(--muted); }
+  .done .big { color: var(--gold); }
+  .bar { height: 12px; background: #000a; border-radius: 99px; overflow: hidden; border: 1px solid #0008; }
+  .bar i { display: block; height: 100%; background: linear-gradient(90deg, var(--accent), var(--gold)); transition: width .6s ease; }
+  .rows { display: grid; grid-template-columns: auto auto 1fr; gap: 6px 12px; align-items: center; margin-top: 12px; font-size: 18px; }
+  .rows .n { text-align: right; font-variant-numeric: tabular-nums; font-weight: 700; }
+  .rows .n small { color: var(--muted); font-weight: 500; }
+  .rows .bar { height: 8px; min-width: 90px; }
+  /* slim bar */
+  .slim { display: flex; align-items: center; gap: 14px; padding: 8px 14px; min-width: 520px; font-size: 20px; font-weight: 700; }
+  .slim .bar { flex: 1; height: 14px; }
+  .slim .pct { font-size: 26px; font-variant-numeric: tabular-nums; }
+  .slim .meta { color: var(--muted); font-size: 16px; white-space: nowrap; }
+  /* marks grid */
+  .grid { padding: 10px 12px; }
+  .grid table { border-collapse: separate; border-spacing: 3px; }
+  .grid th { font-size: 12px; color: var(--muted); font-weight: 700; padding: 0 2px; }
+  .grid th.c { text-align: right; padding-right: 6px; font-size: 13px; }
+  .grid tr.t th.c { color: #ff9c93; }
+  .grid td { width: 18px; height: 18px; border-radius: 5px; background: #0009; border: 1px solid #ffffff1a; padding: 0; }
+  .grid td.l1 { background: var(--silver); border-color: #fff8; }
+  .grid td.l2 { background: var(--gold); border-color: #fff8; box-shadow: 0 0 6px #f0c04f88; }
+  /* remaining */
+  .left .rows { grid-template-columns: 1fr auto; font-size: 17px; }
+  .flash { animation: flash 1.2s ease; }
+  @keyframes flash { 0% { filter: brightness(1.8); } 100% { filter: none; } }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script src="data/achievements.js"></script>
+<script src="js/common.js"></script>
+<script src="js/sync.js"></script>
+<script src="js/overlay.js"></script>
+</body>
+</html>

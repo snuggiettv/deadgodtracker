@@ -1,0 +1,164 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dead God Tracker</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Grandstander:wght@500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <h1 class="brand">Dead God <span>Tracker</span></h1>
+    <div class="sub">Manual checklist for console runs. Saved in this browser.</div>
+  </header>
+
+  <div class="summary" id="summary"></div>
+
+  <nav class="tabs" role="tablist">
+    <button role="tab" data-tab="marks" aria-selected="true">Completion marks</button>
+    <button role="tab" data-tab="achievements">Achievements</button>
+    <button role="tab" data-tab="challenges">Challenges</button>
+    <button role="tab" data-tab="items">Items &amp; settings</button>
+    <button role="tab" data-tab="overlay">Overlay setup</button>
+  </nav>
+
+  <section id="tab-marks">
+    <div class="toolbar">
+      <div class="legend hint">
+        Click a mark to cycle:
+        <span><button class="mark" data-l="0">–</button> none</span>
+        <span><button class="mark" data-l="1">N</button> normal / Greed</span>
+        <span><button class="mark" data-l="2">H</button> hard / Greedier</span>
+        Right-click to clear.
+      </div>
+    </div>
+    <div class="marks-scroll"><table class="marks" id="marks"></table></div>
+    <p class="hint" id="autolink-hint"></p>
+  </section>
+
+  <section id="tab-achievements" hidden>
+    <div class="toolbar">
+      <input type="search" id="ach-search" placeholder="Search name, unlock, or #id">
+      <select id="ach-filter">
+        <option value="locked">Still locked</option>
+        <option value="all">All</option>
+        <option value="done">Unlocked</option>
+      </select>
+      <select id="ach-cat"><option value="">All categories</option></select>
+      <select id="ach-group">
+        <option value="cat">Group by category</option>
+        <option value="id">Sort by ID</option>
+      </select>
+    </div>
+    <div id="ach-out"></div>
+  </section>
+
+  <section id="tab-challenges" hidden>
+    <p class="hint">Ticking a challenge ticks its reward achievement, and the other way round. They are the same thing in the save.</p>
+    <div class="ach-list" id="chal-out"></div>
+  </section>
+
+  <section id="tab-items" hidden>
+    <div class="grid2">
+      <div class="card">
+        <h3>Collection page</h3>
+        <p class="hint">Dead God needs every item on the Stats &rarr; Items collection page. Enter the count you see in-game.</p>
+        <div class="row">
+          <button id="items-dec">−1</button>
+          <input type="number" id="items" min="0">
+          <button id="items-inc">+1</button>
+          <span>of</span>
+          <input type="number" id="items-total" min="1" title="Total items on the collection page">
+        </div>
+        <p class="hint">The total of 719 is a best guess for Repentance. Change it if your collection page shows a different number.</p>
+      </div>
+      <div class="card">
+        <h3>Settings</h3>
+        <div class="row"><label class="inline"><input type="checkbox" id="rep-plus"> I'm on Repentance+ (adds the 4 online / Item Descriptions achievements, 641 total)</label></div>
+        <div class="row"><label class="inline"><input type="checkbox" id="auto-link"> Auto-tick achievements when I tick the completion marks that unlock them</label></div>
+      </div>
+      <div class="card" id="sync-card">
+        <h3>Sync between devices <span class="tag" id="sync-status">off</span></h3>
+        <div id="sync-off">
+          <p class="hint">Tick on your phone, in Meld or in any browser, and the overlay follows within a second or two. No account needed: progress goes through <a href="https://ntfy.sh" target="_blank" rel="noopener">ntfy.sh</a>, a free public relay, under a random room name. Anyone who has your room link can see and change your progress, so keep it to yourself.</p>
+          <button class="primary" id="sync-start">Turn on sync</button>
+        </div>
+        <div id="sync-on" hidden>
+          <p class="hint">Open this link on your other devices to join. The overlay link on the Overlay setup tab includes the room automatically.</p>
+          <div class="url-box"><input id="sync-link" readonly><button class="primary" id="sync-copy">Copy</button></div>
+          <div class="row"><button id="sync-leave">Turn off sync on this device</button></div>
+        </div>
+      </div>
+      <div class="card">
+        <h3>Backup &amp; move between devices</h3>
+        <div class="row">
+          <button id="export-file">Download backup (.json)</button>
+          <label class="inline"><button id="import-file-btn">Load backup…</button><input type="file" id="import-file" accept=".json,application/json" hidden></label>
+        </div>
+        <div class="row">
+          <button id="copy-code">Copy save code</button>
+          <button id="paste-code">Load save code</button>
+        </div>
+        <textarea id="code" placeholder="Paste a save code here, then press Load save code"></textarea>
+      </div>
+      <div class="card">
+        <h3>Reset</h3>
+        <p class="hint">Clears everything in this browser. Download a backup first.</p>
+        <button id="reset">Reset all progress</button>
+      </div>
+    </div>
+  </section>
+
+  <section id="tab-overlay" hidden>
+    <div class="grid2">
+      <div class="card">
+        <h3>Build your overlay link</h3>
+        <div class="row">
+          <label class="inline">View
+            <select id="ov-view">
+              <option value="summary">Summary panel</option>
+              <option value="bar">Slim progress bar</option>
+              <option value="marks">Completion mark grid</option>
+              <option value="remaining">What's left</option>
+            </select>
+          </label>
+          <label class="inline">Scale <input type="number" id="ov-scale" value="1" step="0.1" min="0.3" max="4"></label>
+        </div>
+        <div class="row">
+          <label class="inline"><input type="checkbox" id="ov-bg"> Dark backdrop (off = transparent)</label>
+          <label class="inline"><input type="checkbox" id="ov-tainted" checked> Include tainted (grid)</label>
+        </div>
+        <div class="url-box"><input id="ov-url" readonly><button class="primary" id="ov-copy">Copy</button></div>
+        <h3>OBS (ticks show up live)</h3>
+        <ol class="steps">
+          <li>Add a <b>Browser</b> source (width 400, height 300 for the summary) and paste the overlay link. Tick <i>Shutdown source when not visible</i> off.</li>
+          <li>Go to <b>Docks &rarr; Custom Browser Docks</b>, name it "Dead God", and paste <span id="dock-url">this page's link</span>.</li>
+          <li>Tick things in the dock. OBS docks and browser sources share storage, so the overlay updates within a second or two.</li>
+        </ol>
+        <h3>Meld Studio / other apps</h3>
+        <p class="hint">Turn on <b>Sync between devices</b> (Items &amp; settings tab) first, then add the overlay link as a browser/web layer. Ticks from your phone or any browser then show up live.</p>
+        <p class="hint" id="ov-sync-note"></p>
+        <div class="row"><button id="ov-snapshot">Copy a frozen snapshot link instead</button></div>
+      </div>
+      <div class="card">
+        <h3>Preview</h3>
+        <div class="preview"><iframe id="ov-preview" title="Overlay preview"></iframe></div>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    Achievement names and unlock text are summarised from the <a href="https://bindingofisaacrebirth.wiki.gg/wiki/Achievements" target="_blank" rel="noopener">Binding of Isaac: Rebirth Wiki</a> (CC BY-SA 3.0).
+    The Binding of Isaac is &copy; Edmund McMillen and Nicalis. Fan-made, not affiliated.
+  </footer>
+</div>
+<div class="toast" id="toast"></div>
+<script src="data/achievements.js"></script>
+<script src="js/common.js"></script>
+<script src="js/sync.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,294 @@
+/* Checklist page. */
+(function () {
+  'use strict';
+  const DG = window.DG;
+  const $ = (sel) => document.querySelector(sel);
+  const el = (tag, props = {}, ...kids) => {
+    const n = document.createElement(tag);
+    for (const [k, v] of Object.entries(props)) {
+      if (k === 'class') n.className = v; else if (k === 'dataset') Object.assign(n.dataset, v);
+      else if (k.startsWith('on')) n.addEventListener(k.slice(2), v);
+      else if (k.includes('-')) n.setAttribute(k, v); else if (v !== undefined) n[k] = v;
+    }
+    kids.flat().forEach((c) => c != null && n.append(c));
+    return n;
+  };
+
+  let state = DG.load();
+  let sync = null;
+
+  function commit(msg) {
+    DG.save(state);
+    if (sync) sync.publish(state);
+    renderAll();
+    if (msg) toast(msg);
+  }
+
+  let toastTimer;
+  function toast(msg) {
+    const t = $('#toast');
+    t.textContent = msg; t.classList.add('show');
+    clearTimeout(toastTimer); toastTimer = setTimeout(() => t.classList.remove('show'), 2600);
+  }
+
+  // ---------- summary ----------
+  function renderSummary() {
+    const st = DG.stats(state);
+    const card = (label, n, d, extra = '') => el('div', { class: 'card stat' },
+      el('div', { class: 'label', textContent: label }),
+      el('div', { class: 'value', innerHTML: `${n} <small>/ ${d}${extra}</small>` }),
+      el('div', { class: 'bar' }, el('i', { style: `width:${DG.pct(n, d)}%` })));
+    const overall = el('div', { class: 'card stat' },
+      el('div', { class: 'label', textContent: st.deadGod ? 'Dead God unlocked!' : 'Dead God progress' }),
+      el('div', { class: 'value', innerHTML: `${DG.pct(st.overall, 1)}<small>%</small>` }),
+      el('div', { class: 'bar' }, el('i', { style: `width:${DG.pct(st.overall, 1)}%` })));
+    $('#summary').replaceChildren(
+      overall,
+      card('Achievements', st.achDone, st.achTotal),
+      card('Hard marks', st.hardMarks, st.totalMarks),
+      card('Challenges', st.chalDone, st.chalTotal),
+      card('Items', st.items, st.itemsTotal),
+    );
+  }
+
+  // ---------- marks ----------
+  function renderMarks() {
+    const head = el('tr', {}, el('th', { class: 'char', textContent: 'Character' }),
+      DG.BOSSES.map((b) => el('th', { textContent: b.short, title: b.name })),
+      el('th', { textContent: 'Hard' }));
+    const rows = DG.CHARACTERS.map((c, ci) => {
+      let hard = 0;
+      const cells = DG.BOSSES.map((b, bi) => {
+        const l = DG.getMark(state, ci, bi);
+        if (l === 2) hard++;
+        const label = ['–', b.id === 'greed' ? 'G' : 'N', b.id === 'greed' ? 'GG' : 'H'][l];
+        const btn = el('button', {
+          class: 'mark', textContent: label, dataset: { l, ci, bi },
+          title: `${c.name} – ${b.name}: ${['not done', b.normal || 'Normal', b.hard || 'Hard'][l]}`,
+          'aria-label': `${c.name} ${b.name}`,
+        });
+        return el('td', {}, btn);
+      });
+      return el('tr', { class: c.tainted ? 'tainted' : '' },
+        el('th', { class: 'char', textContent: c.name }), cells,
+        el('td', { class: 'count', textContent: `${hard}/12` }));
+    });
+    $('#marks').replaceChildren(el('thead', {}, head), el('tbody', {}, rows));
+    $('#autolink-hint').textContent = state.autoLink
+      ? 'Auto-tick is on: marks tick the achievements they unlock (for example Satan as Isaac ticks Mom\'s Knife). Turn it off under Items & settings.'
+      : 'Auto-tick is off. Marks and achievements are tracked separately.';
+  }
+
+  function cycleMark(ci, bi, clear) {
+    const cur = DG.getMark(state, ci, bi);
+    const next = clear ? 0 : (cur + 1) % 3;
+    const added = DG.setMark(state, ci, bi, next);
+    commit(added.length ? `Also ticked: ${added.map((id) => DG.ACH_BY_ID.get(id).name).join(', ')}` : null);
+  }
+
+  $('#marks').addEventListener('click', (e) => {
+    const b = e.target.closest('.mark'); if (!b) return;
+    cycleMark(+b.dataset.ci, +b.dataset.bi, false);
+  });
+  $('#marks').addEventListener('contextmenu', (e) => {
+    const b = e.target.closest('.mark'); if (!b) return;
+    e.preventDefault(); cycleMark(+b.dataset.ci, +b.dataset.bi, true);
+  });
+
+  // ---------- achievements ----------
+  const catSel = $('#ach-cat');
+  Object.entries(DG.CATEGORIES).forEach(([k, v]) => catSel.append(el('option', { value: k, textContent: v })));
+
+  function achRow(a) {
+    const done = !!state.ach[a.id];
+    return el('label', { class: 'ach' + (done ? ' done' : '') },
+      el('input', { type: 'checkbox', checked: done, dataset: { id: a.id } }),
+      el('div', {},
+        el('div', {}, el('span', { class: 'id', textContent: '#' + a.id }), el('span', { class: 'n', textContent: a.name }),
+          a.repPlus ? el('span', { class: 'tag', textContent: 'Rep+' }) : null),
+        el('div', { class: 'u', textContent: a.unlock })));
+  }
+
+  function renderAchievements() {
+    const q = $('#ach-search').value.trim().toLowerCase();
+    const f = $('#ach-filter').value, cat = catSel.value, group = $('#ach-group').value;
+    let list = DG.activeAchievements(state).filter((a) => {
+      if (f === 'locked' && state.ach[a.id]) return false;
+      if (f === 'done' && !state.ach[a.id]) return false;
+      if (cat && a.category !== cat) return false;
+      if (q) {
+        if (q.startsWith('#')) return String(a.id) === q.slice(1);
+        return (a.name + ' ' + a.unlock).toLowerCase().includes(q);
+      }
+      return true;
+    });
+    const out = $('#ach-out');
+    if (!list.length) { out.replaceChildren(el('p', { class: 'hint', textContent: f === 'locked' && !q ? 'Nothing left here. Nice.' : 'No matches.' })); return; }
+    if (group === 'id') { out.replaceChildren(el('div', { class: 'ach-list' }, list.map(achRow))); return; }
+    const all = DG.activeAchievements(state);
+    out.replaceChildren(...Object.entries(DG.CATEGORIES).flatMap(([k, label]) => {
+      const sub = list.filter((a) => a.category === k);
+      if (!sub.length) return [];
+      const inCat = all.filter((a) => a.category === k);
+      const doneN = inCat.filter((a) => state.ach[a.id]).length;
+      return [el('h3', { class: 'group-title' }, label, el('span', { textContent: `${doneN} / ${inCat.length}` })),
+        el('div', { class: 'ach-list' }, sub.map(achRow))];
+    }));
+  }
+
+  function onAchToggle(e) {
+    const cb = e.target.closest('input[type=checkbox][data-id]'); if (!cb) return;
+    if (cb.checked) state.ach[cb.dataset.id] = 1; else delete state.ach[cb.dataset.id];
+    commit();
+  }
+  $('#ach-out').addEventListener('change', onAchToggle);
+  $('#chal-out').addEventListener('change', onAchToggle);
+  ['#ach-search', '#ach-filter', '#ach-group'].forEach((s) => $(s).addEventListener('input', renderAchievements));
+  catSel.addEventListener('input', renderAchievements);
+
+  function renderChallenges() {
+    const list = DG.ACHIEVEMENTS.filter((a) => a.challenge).sort((a, b) => a.challenge - b.challenge);
+    $('#chal-out').replaceChildren(...list.map((a) => {
+      const done = !!state.ach[a.id];
+      return el('label', { class: 'ach' + (done ? ' done' : '') },
+        el('input', { type: 'checkbox', checked: done, dataset: { id: a.id } }),
+        el('div', {}, el('div', {}, el('span', { class: 'id', textContent: '#' + a.challenge }), el('span', { class: 'n', textContent: a.challengeName })),
+          el('div', { class: 'u', textContent: 'Reward: ' + a.name })));
+    }));
+  }
+
+  // ---------- items & settings ----------
+  function renderSettings() {
+    if (document.activeElement !== $('#items')) $('#items').value = state.items;
+    if (document.activeElement !== $('#items-total')) $('#items-total').value = state.itemsTotal;
+    $('#rep-plus').checked = state.repPlus;
+    $('#auto-link').checked = state.autoLink;
+  }
+  const clampItems = (n) => Math.max(0, Math.min(state.itemsTotal, Math.round(n) || 0));
+  $('#items').addEventListener('change', (e) => { state.items = clampItems(+e.target.value); commit(); });
+  $('#items-dec').addEventListener('click', () => { state.items = clampItems(state.items - 1); commit(); });
+  $('#items-inc').addEventListener('click', () => { state.items = clampItems(state.items + 1); commit(); });
+  $('#items-total').addEventListener('change', (e) => { state.itemsTotal = Math.max(1, Math.round(+e.target.value) || 719); state.items = clampItems(state.items); commit(); });
+  $('#rep-plus').addEventListener('change', (e) => { state.repPlus = e.target.checked; commit(); });
+  $('#auto-link').addEventListener('change', (e) => {
+    state.autoLink = e.target.checked;
+    const added = state.autoLink ? DG.applyRules(state) : [];
+    commit(added.length ? `Ticked ${added.length} achievements from your marks` : null);
+  });
+
+  $('#export-file').addEventListener('click', () => {
+    const blob = new Blob([JSON.stringify(state, null, 1)], { type: 'application/json' });
+    const a = el('a', { href: URL.createObjectURL(blob), download: `deadgod-backup-${new Date().toISOString().slice(0, 10)}.json` });
+    document.body.append(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+  });
+  $('#import-file-btn').addEventListener('click', () => $('#import-file').click());
+  $('#import-file').addEventListener('change', async (e) => {
+    const f = e.target.files[0]; if (!f) return;
+    try { replaceState(DG.normalize(JSON.parse(await f.text())), 'Backup loaded'); } catch (err) { toast('That file is not a tracker backup'); }
+    e.target.value = '';
+  });
+  $('#copy-code').addEventListener('click', async () => {
+    const code = DG.encode(state);
+    $('#code').value = code;
+    try { await navigator.clipboard.writeText(code); toast('Save code copied'); } catch (_) { $('#code').select(); toast('Save code is in the box below. Copy it from there.'); }
+  });
+  $('#paste-code').addEventListener('click', () => {
+    try { replaceState(DG.decode($('#code').value), 'Save code loaded'); } catch (_) { toast('That save code could not be read'); }
+  });
+  $('#reset').addEventListener('click', () => {
+    if (!confirm('Reset all progress in this browser? This cannot be undone.')) return;
+    replaceState(DG.emptyState(), 'Progress reset');
+  });
+  function replaceState(s, msg) { state = s; commit(msg); }
+
+  // ---------- overlay builder ----------
+  const base = location.href.replace(/[#?].*$/, '').replace(/index\.html$/, '');
+  function overlayUrl(withCode) {
+    const p = new URLSearchParams();
+    p.set('view', $('#ov-view').value);
+    const sc = +$('#ov-scale').value; if (sc && sc !== 1) p.set('scale', sc);
+    if ($('#ov-bg').checked) p.set('bg', '1');
+    if (!$('#ov-tainted').checked) p.set('tainted', '0');
+    const room = DG.sync.getRoom(); if (room && !withCode) p.set('room', room);
+    return base + 'overlay.html?' + p.toString() + (withCode ? '#code=' + DG.encode(state) : '');
+  }
+  function renderOverlayBuilder() {
+    const url = overlayUrl(false);
+    $('#ov-url').value = url;
+    $('#dock-url').innerHTML = `<code>${base}</code>`;
+    $('#ov-sync-note').textContent = DG.sync.getRoom() ? 'Sync is on, so this link follows your ticks from any device.' : 'Sync is off: this link only follows ticks made in the same browser (or an OBS dock).';
+    const fr = $('#ov-preview');
+    if (fr.dataset.src !== url) { fr.dataset.src = url; fr.src = url; }
+  }
+  ['#ov-view', '#ov-scale', '#ov-bg', '#ov-tainted'].forEach((s) => $(s).addEventListener('input', renderOverlayBuilder));
+  async function copy(text, msg) {
+    try { await navigator.clipboard.writeText(text); toast(msg); } catch (_) { prompt('Copy this link:', text); }
+  }
+  $('#ov-copy').addEventListener('click', () => copy(overlayUrl(false), 'Overlay link copied'));
+  $('#ov-snapshot').addEventListener('click', () => copy(overlayUrl(true), 'Snapshot link copied. Re-copy it after you tick more.'));
+
+  // ---------- tabs ----------
+  function showTab(name) {
+    document.querySelectorAll('nav.tabs button').forEach((b) => b.setAttribute('aria-selected', b.dataset.tab === name));
+    document.querySelectorAll('section[id^=tab-]').forEach((s) => (s.hidden = s.id !== 'tab-' + name));
+    try { localStorage.setItem('deadgod-tracker:tab', name); } catch (_) { /* ignore */ }
+    if (name === 'overlay') renderOverlayBuilder();
+  }
+  document.querySelector('nav.tabs').addEventListener('click', (e) => { const b = e.target.closest('button[data-tab]'); if (b) showTab(b.dataset.tab); });
+
+  function renderAll() {
+    renderSummary(); renderMarks(); renderAchievements(); renderChallenges(); renderSettings();
+  }
+
+  // ---------- sync ----------
+  const syncLink = (room) => base + '#room=' + room;
+  function startSync(room) {
+    if (sync) sync.close();
+    DG.sync.setRoom(room);
+    sync = DG.sync.connect(room, {
+      getLocal: () => state,
+      onRemote: (s) => { state = s; DG.save(state, true); renderAll(); },
+      onStatus: (st) => { $('#sync-status').textContent = { live: 'on', connecting: 'connecting…', offline: 'offline', error: 'error' }[st] || st; },
+    });
+    // If the room has nothing newer after a moment, share this device's progress.
+    setTimeout(() => sync && sync.seedIfNewer(state), 4000);
+    renderSync();
+  }
+  function renderSync() {
+    const room = DG.sync.getRoom();
+    $('#sync-off').hidden = !!room; $('#sync-on').hidden = !room;
+    if (!room) $('#sync-status').textContent = 'off';
+    if (room) $('#sync-link').value = syncLink(room);
+    renderOverlayBuilder();
+  }
+  $('#sync-start').addEventListener('click', () => { startSync(DG.sync.newRoom()); toast('Sync is on. Open the link on your other devices.'); });
+  $('#sync-copy').addEventListener('click', () => copy(syncLink(DG.sync.getRoom()), 'Sync link copied'));
+  $('#sync-leave').addEventListener('click', () => {
+    if (sync) sync.close(); sync = null; DG.sync.setRoom(null); renderSync(); toast('Sync is off on this device');
+  });
+
+  const roomMatch = /[#&]room=([a-z0-9]+)/.exec(location.hash);
+  if (roomMatch && DG.sync.validRoom(roomMatch[1]) && roomMatch[1] !== DG.sync.getRoom()) {
+    if (confirm('Join this sync room? Progress on this device will be replaced by the room\'s progress.')) {
+      state.updated = 0; // let the room's copy win
+      DG.save(state, true);
+      DG.sync.setRoom(roomMatch[1]);
+    }
+  }
+  if (roomMatch) history.replaceState(null, '', location.pathname + location.search);
+  if (DG.sync.getRoom()) startSync(DG.sync.getRoom()); else renderSync();
+
+  // Load a save code passed in the URL (#code=...) once, then clean the URL.
+  const m = /[#&]code=([\w-]+)/.exec(location.hash);
+  if (m && confirm('Load the progress from this link? It replaces what is saved in this browser.')) {
+    try { state = DG.decode(m[1]); DG.save(state); } catch (_) { /* ignore */ }
+    history.replaceState(null, '', location.pathname + location.search);
+  }
+
+  DG.onExternalChange((s) => { state = s; renderAll(); });
+  renderAll();
+  let startTab = 'marks';
+  try { startTab = localStorage.getItem('deadgod-tracker:tab') || 'marks'; } catch (_) { /* ignore */ }
+  showTab(startTab);
+})();
