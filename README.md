@@ -35,6 +35,8 @@ Ticking a completion mark auto-ticks the achievements it unlocks (can be turned 
 Push this folder to a repo, then Settings → Pages → Deploy from branch → `main` / root.
 
 ## Credits
+The To-do route is adapted from D0ggy's and neonomi's DeadGod% Repentance+ split sheet (tips paraphrased).
+
 Achievement names and unlock conditions are summarised from the
 [Binding of Isaac: Rebirth Wiki](https://bindingofisaacrebirth.wiki.gg/wiki/Achievements), CC BY-SA 3.0.
 The Binding of Isaac is © Edmund McMillen and Nicalis. Fan-made and not affiliated.

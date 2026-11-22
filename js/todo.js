@@ -1,6 +1,5 @@
-/* To-do roadmap: turns what is still unticked into an ordered list of things to work on.
-   The phase order is a common Dead God route, not the only one. Every task is worked out
-   from the checklist state, so the list updates as you tick. */
+/* To-do roadmap: the DeadGod% route from data/route.js (adapted from D0ggy's and neonomi's
+   split sheet). Every step is worked out from the checklist state, so the list updates as you tick. */
 (function () {
   'use strict';
   const DG = window.DG;
@@ -16,9 +15,6 @@
   // Mom's Heart kill-count achievements, in order (2 … 11 kills).
   const HEART_KILLS = [150, 8, 139, 33, 140, 141, 10, 11, 32, 234, 34];
 
-  const POWER_CHALLENGES = [2, 6, 10, 17, 18, 3, 5, 8];
-  // Shop Donation Machine milestones up to 600 coins (10, 20, 50, 100, 150, 200, 400, 600).
-  const SHOP_TO_600 = [134, 151, 135, 152, 136, 153, 137, 154];
   const has = (s, id) => !!s.ach[id];
   const ach = (id) => DG.ACH_BY_ID.get(id);
 
@@ -52,65 +48,95 @@
     return { key, title, detail, tab, progress: [done, ids.length], done: done === ids.length };
   }
 
-  function build(s) {
-    const active = new Set(DG.activeAchievements(s).map((a) => a.id));
-    const phases = [];
-    const phase = (id, title, note, items) => phases.push({ id, title, note, items: items.filter(Boolean) });
+  const BOSS_CODE = { MH: 'momsheart', IS: 'isaac', SA: 'satan', BB: 'bluebaby', LA: 'lamb', MS: 'megasatan', BR: 'bossrush', HU: 'hush', GR: 'greed', GG: 'greed', DE: 'delirium', MO: 'mother', BE: 'beast' };
+  const BOSS_IDX = Object.fromEntries(DG.BOSSES.map((b, i) => [b.id, i]));
+  // Mom's Heart kill count -> achievement for that many kills (1 kill has none; any Mom's Heart mark counts).
+  const HEART_AT = { 2: 150, 3: 8, 4: 139, 5: 33, 6: 140, 7: 141, 8: 10, 9: 11, 10: 32, 11: 34 };
 
-    const heartDone = HEART_KILLS.filter((id) => has(s, id)).length;
-    phase('start', 'Open up the game', 'Beat Mom and keep beating Mom\'s Heart. This opens new floors and items.', [
-      achTask(s, 4),
-      { key: 'hearts', title: "Beat Mom's Heart 11 times", detail: 'Unlocks It Lives!, Blue Womb and more along the way',
-        progress: [heartDone, HEART_KILLS.length], done: heartDone === HEART_KILLS.length, tab: 'achievements' },
-      achTask(s, 57), achTask(s, 78), achTask(s, 58),
-      achTask(s, 320, { detail: 'Defeat Hush (Blue Womb needs Mom\'s Heart 10 times)' }),
-      achTask(s, 338), achTask(s, 341),
-      achTask(s, 411), achTask(s, 635), achTask(s, 407), achTask(s, 415),
-    ]);
+  // Parse the route once into steps with structured requirements.
+  const ROUTE = (window.DG_ROUTE || []).map(([chapter, text], ch) => ({
+    chapter, id: 'r' + ch,
+    steps: text.trim().split('\n').map((line, i) => {
+      const [label, req = '', tip = ''] = line.split('|').map((x) => x.trim());
+      const st = { key: `r${ch}-${i}`, label, tip, ci: null, marks: [], achs: [], items: false, heart: 0, optional: false };
+      const toks = req.split(/\s+/).filter(Boolean);
+      const excl = new Set(toks.filter((t) => t.startsWith('-')).map((t) => t.slice(1)));
+      for (const t of toks) {
+        if (t.startsWith('@')) st.ci = DG.CHARACTERS.findIndex((c) => c.id === t.slice(1));
+        else if (t === 'ALL') {
+          for (const b of DG.BOSSES) {
+            if (b.id === 'greed') { if (!excl.has('GR')) st.marks.push(['greed', excl.has('GG') ? 1 : 2]); }
+            else if (![...excl].some((x) => BOSS_CODE[x] === b.id)) st.marks.push([b.id, 2]);
+          }
+        } else if (BOSS_CODE[t]) {
+          const add = (id, l) => { if (!st.marks.some((m) => m[0] === id)) st.marks.push([id, l]); };
+          if (t === 'LA') { add('momsheart', 2); add('satan', 2); }
+          if (t === 'BB') { add('momsheart', 2); add('isaac', 2); }
+          add(BOSS_CODE[t], t === 'GR' ? 1 : 2);
+        } else if (/^a\d+$/.test(t)) st.achs.push(+t.slice(1));
+        else if (/^c\d+$/.test(t)) { const a = DG.ACHIEVEMENTS.find((x) => x.challenge === +t.slice(1)); if (a) st.achs.push(a.id); }
+        else if (/^h\d+$/.test(t)) st.heart = +t.slice(1);
+        else if (t === 'items') st.items = true;
+        else if (t === 'opt') st.optional = true;
+      }
+      return st;
+    }),
+  }));
 
-    phase('chars', 'Unlock every character', 'Each new character opens a row of completion marks.',
-      Object.entries(CHAR_UNLOCK).map(([cid, id]) => achTask(s, id, { title: 'Unlock ' + DG.CHARACTERS.find((c) => c.id === cid).name })));
+  function heartDone(s, k) {
+    if (HEART_AT[k]) return has(s, HEART_AT[k]);
+    if (k === 1) return has(s, 150) || DG.CHARACTERS.some((_, ci) => DG.getMark(s, ci, 0) > 0);
+    return false;
+  }
 
-    phase('marks', 'Completion marks (base characters)', 'Play on Hard: a hard mark also counts as the normal one, so you never repeat a run. Characters closest to finished are listed first.',
-      DG.CHARACTERS.map((c, ci) => (c.tainted ? null : markTask(s, ci))).filter(Boolean).sort(byProgress));
-
-    phase('tainted', 'Tainted characters', 'Use the Red Key on the closet in Home as each character to unlock their tainted version, then earn their marks.',
-      DG.CHARACTERS.map((c, ci) => (c.tainted ? markTask(s, ci) : null)).filter(Boolean).sort(byProgress));
-
-    // Early power unlocks: strong challenge rewards and shop upgrades make every later run easier
-    // (order suggested by community unlock guides, e.g. whisperofthehouse.com).
-    const chalById = (n) => DG.ACHIEVEMENTS.find((a) => a.challenge === n);
-    phase('power', 'Early power unlocks', 'Strong challenge rewards and a better shop make every later run faster. Do these as soon as the challenges open up.', [
-      ...POWER_CHALLENGES.map((n) => { const a = chalById(n); return achTask(s, a.id, { title: `Challenge #${n} ${a.challengeName}`, detail: 'Reward: ' + a.name }); }),
-      groupTask(s, 'shop600', 'Shop Donation Machine to 600 coins', SHOP_TO_600, 'Unlocks the shop upgrades and better candles along the way', 'achievements'),
-    ]);
-
-    const chal = DG.ACHIEVEMENTS.filter((a) => a.challenge && !POWER_CHALLENGES.includes(a.challenge)).sort((a, b) => a.challenge - b.challenge);
-    phase('challenges', 'Challenges', 'Some challenges stay locked until you unlock things first. The game shows which ones you can play.',
-      chal.map((a) => achTask(s, a.id, { title: `#${a.challenge} ${a.challengeName}`, detail: 'Reward: ' + a.name })));
-
-    const ofCat = (cat) => DG.ACHIEVEMENTS.filter((a) => a.category === cat && active.has(a.id)).map((a) => a.id);
-    phase('grind', 'Donations, counters and grinds', 'These build up over many runs, so keep them in mind every run.', [
-      groupTask(s, 'donate', 'Donation machines (the rest)', ofCat('donation').filter((id) => !SHOP_TO_600.includes(id)), 'Shop Donation Machine to 999 coins, Greed Donation Machine to 1000', 'achievements'),
-      ...ofCat('grind').map((id) => achTask(s, id)),
-    ]);
-
-    phase('secrets', 'Other secrets', 'One-off unlocks, often easy to do on the way.',
-      ofCat('other').filter((id) => ![636, 637].includes(id) && !phases.some((p) => p.items.some((t) => t.achId === id))).map((id) => achTask(s, id)));
-
-    const st = DG.stats(s);
-    phase('final', 'Final stretch', 'Collect every item, then the last achievements fall into place.', [
-      { key: 'items', title: 'Fill the collection page', detail: `${st.itemsTotal - st.items} items to go`, progress: [st.items, st.itemsTotal], done: st.items >= st.itemsTotal, tab: 'items' },
-      s.repPlus ? groupTask(s, 'online', 'Repentance+ achievements', [638, 639, 640, 641], 'Play online, win online, win an online daily, defeat Mom', 'achievements') : null,
-      achTask(s, 636), achTask(s, 637),
-    ]);
-
-    const ORDER = ['start', 'power', 'chars', 'marks', 'tainted', 'challenges', 'grind', 'secrets', 'final'];
-    phases.sort((a, b) => ORDER.indexOf(a.id) - ORDER.indexOf(b.id));
-    for (const p of phases) {
-      p.total = p.items.length;
-      p.doneCount = p.items.filter((t) => t.done).length;
+  function stepTask(s, st) {
+    const parts = [];
+    const missing = [];
+    for (const [bid, l] of st.marks) {
+      const ok = DG.getMark(s, st.ci, BOSS_IDX[bid]) >= l;
+      parts.push(ok);
+      if (!ok) missing.push(bid === 'greed' ? (l === 2 ? 'Greedier' : 'Greed') : DG.BOSSES[BOSS_IDX[bid]].name);
     }
+    for (const id of st.achs) {
+      if (!s.repPlus && id >= 638 && id <= 641) continue;
+      const ok = has(s, id); parts.push(ok);
+      if (!ok && (st.marks.length || st.achs.length > 1)) missing.push(ach(id).name);
+    }
+    if (st.heart) parts.push(heartDone(s, st.heart));
+    const stt = DG.stats(s);
+    if (st.items) parts.push(stt.items >= stt.itemsTotal);
+    const met = parts.filter(Boolean).length;
+    const t = { key: st.key, title: st.label, done: parts.length > 0 && met === parts.length, optional: st.optional };
+    const bits = [];
+    if (st.tip) bits.push(st.tip);
+    if (st.heart && HEART_AT[st.heart]) bits.push('Unlocks ' + ach(HEART_AT[st.heart]).name);
+    if (missing.length && met > 0) bits.push('Still need: ' + missing.join(', '));
+    if (st.ci != null && st.ci >= 0) {
+      t.ci = st.ci;
+      if (!charUnlocked(s, st.ci) && !t.done) {
+        const c = DG.CHARACTERS[st.ci];
+        const lockId = c.tainted ? TAINTED_UNLOCK_START + (st.ci - BASE_COUNT) : CHAR_UNLOCK[c.id];
+        t.locked = true; bits.unshift(`Unlock ${c.name} first: ${ach(lockId).unlock}`);
+      }
+    }
+    if (parts.length > 1) t.progress = [met, parts.length];
+    if (st.items) { t.progress = [stt.items, stt.itemsTotal]; t.tab = 'items'; }
+    if (!st.marks.length && !st.items && !st.heart && st.achs.length === 1) t.achId = st.achs[0];
+    if (st.heart) t.achId = HEART_AT[st.heart];
+    t.detail = bits.join(' · ');
+    return t;
+  }
+
+  function build(s) {
+    const phases = ROUTE.map((r) => {
+      const items = r.steps.map((st) => stepTask(s, st));
+      const counted = items.filter((t) => !t.optional);
+      return { id: r.id, title: r.chapter, note: '', items, total: counted.length, doneCount: counted.filter((t) => t.done).length };
+    });
+    const side = (window.DG_SIDE_GOALS || []).filter((id) => DG.ACH_BY_ID.has(id)).map((id) => achTask(s, id));
+    phases.push({ id: 'side', title: 'Side goals for every run', note: 'D0ggy keeps these in mind on every run instead of doing them at a fixed point.', items: side,
+      total: side.length, doneCount: side.filter((t) => t.done).length, side: true });
+    phases[0].note = 'Route adapted from D0ggy\'s and neonomi\'s DeadGod% Repentance+ splits. Each step ticks itself off from your marks and achievements.';
     return phases;
   }
 
@@ -121,12 +147,16 @@
     return pb - pa;
   }
 
-  // A short mix of open tasks: up to two from each unfinished phase, earliest phases first.
+  // The next open steps of the route, in order (optional steps and side goals left out).
   function nextUp(s, count = 6) {
     const out = [];
     for (const p of build(s)) {
-      const open = p.items.filter((t) => !t.done && !t.locked).slice(0, 2);
-      for (const t of open) { out.push({ ...t, phase: p.title }); if (out.length >= count) return out; }
+      if (p.side) continue;
+      for (const t of p.items) {
+        if (t.done || t.optional) continue;
+        out.push({ ...t, phase: p.title });
+        if (out.length >= count) return out;
+      }
     }
     return out;
   }

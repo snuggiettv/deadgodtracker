@@ -173,3 +173,4 @@ details.phase .pnote { color: var(--muted); font-size: .88rem; margin: 0 14px 8p
   .stat .value { font-size: 1.2rem; }
   .stat .label { font-size: .7rem; }
 }
+.task.optional .tt::after { content: " (optional)"; color: var(--muted); font-weight: 400; font-size: .85rem; }

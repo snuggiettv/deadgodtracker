@@ -347,8 +347,10 @@
     const prog = t.progress ? el('div', { class: 'tprog' }, `${t.progress[0]} / ${t.progress[1]}`,
       el('div', { class: 'bar' }, el('i', { style: `width:${DG.pct(t.progress[0], t.progress[1])}%` }))) : null;
     const cb = t.achId && !t.progress ? el('input', { type: 'checkbox', checked: t.done, dataset: { id: t.achId }, title: 'Mark as unlocked' }) : null;
-    const go = t.tab ? el('button', { class: 'go', textContent: TAB_NAMES[t.tab] + ' →', onclick: () => showTab(t.tab) }) : null;
-    return el('div', { class: 'task' + (t.done ? ' done' : '') + (t.locked ? ' locked' : '') }, cb,
+    const go = t.ci != null && !t.done
+      ? el('button', { class: 'go', textContent: 'Play →', title: 'Set as the character you are playing', onclick: () => { state.current = t.ci; commit(); showTab('run'); } })
+      : t.tab ? el('button', { class: 'go', textContent: TAB_NAMES[t.tab] + ' →', onclick: () => showTab(t.tab) }) : null;
+    return el('div', { class: 'task' + (t.done ? ' done' : '') + (t.locked ? ' locked' : '') + (t.optional ? ' optional' : '') }, cb,
       el('div', { class: 'tbody' },
         showPhase ? el('div', { class: 'tphase', textContent: t.phase }) : null,
         el('div', { class: 'tt', textContent: t.title }), el('div', { class: 'td', textContent: t.detail })),
