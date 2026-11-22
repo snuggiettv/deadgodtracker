@@ -25,10 +25,11 @@
   }
 
   let toastTimer;
-  function toast(msg) {
+  function toast(msg, action, ms = 2600) {
     const t = $('#toast');
-    t.textContent = msg; t.classList.add('show');
-    clearTimeout(toastTimer); toastTimer = setTimeout(() => t.classList.remove('show'), 2600);
+    t.textContent = msg; t.classList.add('show'); t.classList.toggle('action', !!action);
+    if (action) t.append(el('button', { textContent: action.label, onclick: () => { t.classList.remove('show', 'action'); action.run(); } }));
+    clearTimeout(toastTimer); toastTimer = setTimeout(() => t.classList.remove('show', 'action'), ms);
   }
 
   // ---------- summary ----------
@@ -196,10 +197,20 @@
   $('#paste-code').addEventListener('click', () => {
     try { replaceState(DG.decode($('#code').value), 'Save code loaded'); } catch (_) { toast('That save code could not be read'); }
   });
-  $('#reset').addEventListener('click', () => {
-    if (!confirm('Reset all progress in this browser? This cannot be undone.')) return;
-    replaceState(DG.emptyState(), 'Progress reset');
-  });
+  function resetAll() {
+    const synced = !!DG.sync.getRoom();
+    const msg = 'Reset ALL progress (marks, achievements and items)?' +
+      (synced ? '\n\nSync is on, so your overlay and other devices will reset too.' : '') +
+      '\n\nYou can undo for 15 seconds afterwards.';
+    if (!confirm(msg)) return;
+    const backup = JSON.parse(JSON.stringify(state));
+    const fresh = DG.emptyState();
+    fresh.repPlus = state.repPlus; fresh.autoLink = state.autoLink; fresh.itemsTotal = state.itemsTotal;
+    state = fresh; commit();
+    toast('Progress reset', { label: 'Undo', run: () => { state = backup; commit('Progress restored'); } }, 15000);
+  }
+  $('#reset').addEventListener('click', resetAll);
+  $('#reset-top').addEventListener('click', resetAll);
   function replaceState(s, msg) { state = s; commit(msg); }
 
   // ---------- overlay builder ----------
