@@ -1,5 +1,5 @@
 /* Overlay page for OBS / Meld browser sources.
-   URL options: ?view=summary|bar|marks|remaining &scale=1.5 &bg=1 &tainted=0
+   URL options: ?view=summary|bar|marks|remaining|next &count=4 &scale=1.5 &bg=1 &tainted=0
    Progress comes from this browser's saved state, or from a #code=... snapshot. */
 (function () {
   'use strict';
@@ -58,10 +58,17 @@
       <span>Hard marks</span><span class="n">${st.totalMarks - st.hardMarks}</span></div></div>`;
   }
 
+  function next() {
+    const items = DG.todo ? DG.todo.nextUp(state, +p.get('count') || 4) : [];
+    const rows = items.map((t) => `<li><span>${esc(t.title)}</span>${t.progress ? `<small>${t.progress[0]}/${t.progress[1]}</small>` : ''}</li>`).join('');
+    return `<div class="panel next"><div class="title">Next up</div><ul>${rows || '<li>Dead God time!</li>'}</ul></div>`;
+  }
+  const esc = (t) => String(t).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
+
   let lastHtml = '';
   function render(flash) {
     const st = DG.stats(state);
-    const html = view === 'bar' ? slim(st) : view === 'marks' ? marks() : view === 'remaining' ? remaining(st) : summary(st);
+    const html = view === 'bar' ? slim(st) : view === 'marks' ? marks() : view === 'remaining' ? remaining(st) : view === 'next' ? next() : summary(st);
     if (html === lastHtml) return;
     lastHtml = html;
     root.innerHTML = html;

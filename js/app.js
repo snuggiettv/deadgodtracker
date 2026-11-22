@@ -248,7 +248,49 @@
   }
   document.querySelector('nav.tabs').addEventListener('click', (e) => { const b = e.target.closest('button[data-tab]'); if (b) showTab(b.dataset.tab); });
 
+  // ---------- to-do ----------
+  const TAB_NAMES = { marks: 'Marks', achievements: 'List', items: 'Items', challenges: 'Challenges' };
+  function taskRow(t, showPhase) {
+    const prog = t.progress ? el('div', { class: 'tprog' }, `${t.progress[0]} / ${t.progress[1]}`,
+      el('div', { class: 'bar' }, el('i', { style: `width:${DG.pct(t.progress[0], t.progress[1])}%` }))) : null;
+    const cb = t.achId && !t.progress ? el('input', { type: 'checkbox', checked: t.done, dataset: { id: t.achId }, title: 'Mark as unlocked' }) : null;
+    const go = t.tab ? el('button', { class: 'go', textContent: TAB_NAMES[t.tab] + ' →', onclick: () => showTab(t.tab) }) : null;
+    return el('div', { class: 'task' + (t.done ? ' done' : '') + (t.locked ? ' locked' : '') }, cb,
+      el('div', { class: 'tbody' },
+        showPhase ? el('div', { class: 'tphase', textContent: t.phase }) : null,
+        el('div', { class: 'tt', textContent: t.title }), el('div', { class: 'td', textContent: t.detail })),
+      prog, go);
+  }
+  const openPhases = new Set();
+  function renderTodo() {
+    const next = DG.todo.nextUp(state, 6);
+    $('#todo-next').replaceChildren(...(next.length ? next.map((t) => taskRow(t, true))
+      : [el('p', { class: 'hint', textContent: 'Nothing left. Go claim that Dead God!' })]));
+    const showDone = $('#todo-show-done').checked;
+    const phases = DG.todo.build(state);
+    const firstOpen = phases.find((p) => p.doneCount < p.total);
+    $('#todo-phases').replaceChildren(...phases.map((p) => {
+      const complete = p.doneCount === p.total;
+      const items = p.items.filter((t) => showDone || !t.done);
+      const d = el('details', { class: 'phase' + (complete ? ' complete' : ''), dataset: { id: p.id } },
+        el('summary', {}, el('span', { class: 'ptitle', textContent: (complete ? '✓ ' : '') + p.title }),
+          el('span', { class: 'pcount', textContent: `${p.doneCount} / ${p.total}` }),
+          el('div', { class: 'bar pbar' }, el('i', { style: `width:${DG.pct(p.doneCount, p.total)}%` }))),
+        el('p', { class: 'pnote', textContent: p.note }),
+        el('div', { class: 'tasks' }, items.length ? items.map((t) => taskRow(t, false)) : el('p', { class: 'hint', textContent: 'All done here.' })));
+      d.open = openPhases.has(p.id) || (!openPhases.size && p === firstOpen);
+      d.addEventListener('toggle', () => { if (d.open) openPhases.add(p.id); else openPhases.delete(p.id); });
+      return d;
+    }));
+    if (!openPhases.size && firstOpen) openPhases.add(firstOpen.id);
+  }
+  $('#tab-todo').addEventListener('change', (e) => {
+    if (e.target.id === 'todo-show-done') return renderTodo();
+    onAchToggle(e);
+  });
+
   function renderAll() {
+    renderTodo();
     renderSummary(); renderMarks(); renderAchievements(); renderChallenges(); renderSettings();
   }
 
@@ -299,7 +341,7 @@
 
   DG.onExternalChange((s) => { state = s; renderAll(); });
   renderAll();
-  let startTab = 'marks';
-  try { startTab = localStorage.getItem('deadgod-tracker:tab') || 'marks'; } catch (_) { /* ignore */ }
+  let startTab = 'todo';
+  try { startTab = localStorage.getItem('deadgod-tracker:tab') || 'todo'; } catch (_) { /* ignore */ }
   showTab(startTab);
 })();

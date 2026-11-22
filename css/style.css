@@ -104,3 +104,33 @@ footer { color: var(--muted); font-size: .8rem; margin: 30px 0 10px; }
 .reset-btn:hover { border-color: var(--accent); background: #3a1a16; }
 .toast.action { pointer-events: auto; }
 .toast button { margin-left: 10px; padding: 3px 10px; border-color: var(--gold); color: var(--gold); }
+
+/* to-do */
+.next-card { margin-bottom: 16px; border-color: #5b4512; }
+.next-card h3, .todo-h { margin: 0 0 10px; }
+.todo-bar { justify-content: space-between; margin-top: 6px; }
+.todo-bar .todo-h { margin: 0; }
+details.phase { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); margin-bottom: 8px; }
+details.phase > summary { cursor: pointer; padding: 11px 14px; display: flex; gap: 12px; align-items: center; list-style: none; }
+details.phase > summary::-webkit-details-marker { display: none; }
+details.phase > summary::before { content: "▸"; color: var(--muted); transition: transform .15s; }
+details.phase[open] > summary::before { transform: rotate(90deg); }
+details.phase .ptitle { font-weight: 700; flex: 1; }
+details.phase .pcount { color: var(--muted); font-variant-numeric: tabular-nums; font-size: .9rem; }
+details.phase .pbar { width: 120px; margin: 0; }
+details.phase.complete .ptitle { color: var(--ok); }
+details.phase .pnote { color: var(--muted); font-size: .88rem; margin: 0 14px 8px 36px; }
+.tasks { display: grid; gap: 6px; padding: 0 14px 14px; }
+.task { display: flex; gap: 10px; align-items: center; background: var(--panel-2); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; }
+.task .tbody { flex: 1; min-width: 0; }
+.task .tt { font-weight: 600; }
+.task .td { color: var(--muted); font-size: .86rem; }
+.task .tphase { color: var(--gold); font-size: .72rem; text-transform: uppercase; letter-spacing: .06em; }
+.task .tprog { width: 110px; flex: none; text-align: right; font-size: .82rem; color: var(--muted); font-variant-numeric: tabular-nums; }
+.task .tprog .bar { margin-top: 3px; }
+.task.done { opacity: .5; }
+.task.done .tt { text-decoration: line-through; text-decoration-color: var(--accent); }
+.task.locked .tt::before { content: "🔒 "; }
+.task button.go { flex: none; padding: 4px 10px; font-size: .85rem; }
+.task input { flex: none; }
+@media (max-width: 560px) { details.phase .pbar { display: none; } .task { flex-wrap: wrap; } .task .tprog { width: 100%; text-align: left; } }
