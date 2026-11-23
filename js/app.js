@@ -18,6 +18,7 @@
   let sync = null;
 
   function commit(msg) {
+    DG.splits.record(state);
     DG.save(state);
     if (sync) sync.publish(state);
     renderAll();
@@ -202,12 +203,15 @@
     commit(added.length ? `Ticked ${added.length} achievements from your marks` : null);
   });
 
-  $('#export-file').addEventListener('click', () => {
+  function downloadBackup(suffix = '') {
+    const d = new Date(), p2 = (n) => String(n).padStart(2, '0');
+    const stamp = `${d.getFullYear()}-${p2(d.getMonth() + 1)}-${p2(d.getDate())}_${p2(d.getHours())}${p2(d.getMinutes())}`;
     const blob = new Blob([JSON.stringify(state, null, 1)], { type: 'application/json' });
-    const a = el('a', { href: URL.createObjectURL(blob), download: `deadgod-backup-${new Date().toISOString().slice(0, 10)}.json` });
+    const a = el('a', { href: URL.createObjectURL(blob), download: `deadgod-backup-${stamp}${suffix}.json` });
     document.body.append(a); a.click(); a.remove();
     setTimeout(() => URL.revokeObjectURL(a.href), 1000);
-  });
+  }
+  $('#export-file').addEventListener('click', () => downloadBackup());
   $('#import-file-btn').addEventListener('click', () => $('#import-file').click());
   $('#import-file').addEventListener('change', async (e) => {
     const f = e.target.files[0]; if (!f) return;
@@ -232,11 +236,12 @@
     const fresh = DG.emptyState();
     fresh.repPlus = state.repPlus; fresh.autoLink = state.autoLink; fresh.itemsTotal = state.itemsTotal;
     state = fresh; commit();
-    toast('Progress reset', { label: 'Undo', run: () => { state = backup; commit('Progress restored'); } }, 15000);
+    toast('Progress reset', { label: 'Undo', run: () => replaceState(backup, 'Progress restored') }, 15000);
   }
   $('#reset').addEventListener('click', resetAll);
   $('#reset-top').addEventListener('click', resetAll);
-  function replaceState(s, msg) { state = s; commit(msg); }
+  // Swap in a whole state (backup, undo, save code) without recording its finished steps as new splits.
+  function replaceState(s, msg) { state = s; DG.splits.baseline(state); commit(msg); }
 
   // ---------- overlay builder ----------
   const base = location.href.replace(/[#?].*$/, '').replace(/index\.html$/, '');
@@ -247,6 +252,7 @@
     if ($('#ov-bg').checked) p.set('bg', '1');
     if (!$('#ov-tainted').checked) p.set('tainted', '0');
     if (!$('#ov-timer').checked) p.set('timer', '0');
+    if ($('#ov-view').value === 'splits' && cmp === 'neo') p.set('cmp', 'neo');
     const room = DG.sync.getRoom(); if (room && !withCode) p.set('room', room);
     return base + 'overlay.html?' + p.toString() + (withCode ? '#code=' + DG.encode(state) : '');
   }
@@ -278,6 +284,7 @@
   function renderTimer() {
     const ms = DG.timerMs(state), run = state.timer.running, txt = DG.fmtTime(ms);
     $('#htime').textContent = txt; $('#run-time').textContent = txt;
+    const live = $('#split-live'); if (live) live.textContent = DG.fmtTime(Math.max(0, ms - Math.max(0, ...Object.values(state.splits))), false);
     $('#htimer').classList.toggle('running', run); $('#run-time').classList.toggle('running', run);
     const label = run ? 'Pause' : ms ? 'Resume' : 'Start';
     $('#htoggle').textContent = label; $('#t-toggle').textContent = label;
@@ -296,11 +303,12 @@
     const st = DG.stats(state);
     state.timer.ended = true; // the next Start begins a new session
     commit();
-    toast(`Session ended at ${DG.fmtTime(DG.timerMs(state))}. Now show the Secrets menu on stream: it should read ${st.achDone} / ${st.achTotal}.`, null, 15000);
+    downloadBackup(`_session-${state.timer.sessions}`);
+    toast(`Session ended at ${DG.fmtTime(DG.timerMs(state))} and a backup file was downloaded. Now show the Secrets menu on stream: it should read ${st.achDone} / ${st.achTotal}.`, null, 15000);
   });
   $('#t-reset').addEventListener('click', () => {
-    if (!confirm('Reset the timer to 0:00? (Progress is not touched.)')) return;
-    state.timer = DG.emptyTimer(); commit('Timer reset');
+    if (!confirm('Reset the timer to 0:00? Your split times are cleared too. (Progress is not touched.)')) return;
+    state.timer = DG.emptyTimer(); state.splits = {}; commit('Timer reset');
   });
   setInterval(() => { if (state.timer.running) renderTimer(); }, 100);
 
@@ -351,7 +359,7 @@
     commit();
     const b = DG.BOSSES[bi];
     toast(`${b.name} ✓` + (added.length ? ` · unlocked ${added.map((id) => DG.ACH_BY_ID.get(id).name).join(', ')}` : ''),
-      { label: 'Undo', run: () => { state = backup; commit('Undone'); } }, 8000);
+      { label: 'Undo', run: () => replaceState(backup, 'Undone') }, 8000);
   }
   function renderFocusCard() {
     const box = $('#todo-focus'), ci = state.current;
@@ -366,6 +374,35 @@
       focusRewards(f));
   }
 
+  // ---------- splits ----------
+  let cmp = 'pb';
+  try { cmp = localStorage.getItem('deadgod-tracker:cmp') === 'neo' ? 'neo' : 'pb'; } catch (_) { /* ignore */ }
+  const fmt = (ms) => (ms == null ? '—' : DG.fmtTime(ms, false));
+  const deltaEl = (d) => el('span', { class: 'delta ' + (d == null ? '' : d <= 0 ? 'ahead' : 'behind'), textContent: d == null ? '' : DG.splits.fmtDelta(d) });
+  function splitRow(d) {
+    return el('tr', {}, el('td', { textContent: d.label }), el('td', { class: 'n', textContent: fmt(d.seg) }),
+      el('td', { class: 'n dim', textContent: fmt(d.ref) }), el('td', { class: 'n' }, deltaEl(d.delta)));
+  }
+  function renderSplits() {
+    const t = DG.splits.table(state, cmp), name = DG.splits.cmpName(cmp);
+    const sw = el('div', { class: 'diff-switch' }, ['pb', 'neo'].map((c) => el('button', { class: cmp === c ? 'on' : '', textContent: DG.splits.cmpName(c),
+      onclick: () => { cmp = c; try { localStorage.setItem('deadgod-tracker:cmp', c); } catch (_) { /* ignore */ } renderSplits(); renderTodo(); } })));
+    const recent = t.done.slice(-5);
+    const head = el('tr', {}, el('th', { textContent: 'Step' }), el('th', { class: 'n', textContent: 'Time' }), el('th', { class: 'n', textContent: name }), el('th', { class: 'n', textContent: '±' }));
+    const nextRow = t.next ? el('tr', { class: 'cur' }, el('td', {}, el('b', { textContent: 'Now: ' }), t.next.label),
+      el('td', { class: 'n' }, el('span', { id: 'split-live', textContent: fmt(t.next.seg) })), el('td', { class: 'n dim', textContent: fmt(t.next.ref) }), el('td')) : null;
+    const total = t.compared ? el('p', { class: 'split-total' }, `Over your ${t.compared} split${t.compared === 1 ? '' : 's'}: ${fmt(t.mine)} vs ${name} ${fmt(t.theirs)} `, deltaEl(t.delta)) : null;
+    const all = t.done.length > 5 ? el('details', { class: 'split-all' }, el('summary', { textContent: `All ${t.done.length} splits` }),
+      el('table', { class: 'splits' }, el('thead', {}, head.cloneNode(true)), el('tbody', {}, t.done.map(splitRow)))) : null;
+    $('#run-splits').replaceChildren(...[
+      el('div', { class: 'row' }, el('h3', { style: 'margin:0;flex:1', textContent: 'Route splits' }), el('span', { class: 'hint', textContent: 'Compare with' }), sw),
+      el('p', { class: 'hint', textContent: t.done.length ? 'Each step of the To-do route is a split. It is timed when the step ticks off while the timer is going.'
+        : 'Each step of the To-do route is a split. Start the timer and split times appear here as steps tick off. Times are compared per step with D0ggy\'s PB or neonomi\'s run from their split sheet.' }),
+      total,
+      el('table', { class: 'splits' }, el('thead', {}, head), el('tbody', {}, recent.map(splitRow), nextRow)),
+      all].filter(Boolean));
+  }
+
   // ---------- to-do ----------
   const TAB_NAMES = { marks: 'Marks', achievements: 'List', items: 'Items', challenges: 'Challenges' };
   function taskRow(t, showPhase) {
@@ -375,11 +412,15 @@
     const go = t.ci != null && !t.done
       ? el('button', { class: 'go', textContent: 'Play →', title: 'Set as the character you are playing', onclick: () => { state.current = t.ci; commit(); showTab('run'); } })
       : t.tab ? el('button', { class: 'go', textContent: TAB_NAMES[t.tab] + ' →', onclick: () => showTab(t.tab) }) : null;
+    const sp = t.done ? DG.splits.splitFor(state, t.title, cmp) : null;
+    const ref = DG.splits.refOf(t, cmp);
+    const split = sp ? el('div', { class: 'tsplit', title: `Your time for this step vs ${DG.splits.cmpName(cmp)}` }, fmt(sp.seg), ' ', deltaEl(sp.delta))
+      : !t.done && ref ? el('div', { class: 'tsplit dim', title: `${DG.splits.cmpName(cmp)} took this long on this step` }, `${cmp === 'neo' ? 'neonomi' : 'D0ggy'} ${fmt(ref)}`) : null;
     return el('div', { class: 'task' + (t.done ? ' done' : '') + (t.locked ? ' locked' : '') + (t.optional ? ' optional' : '') }, cb,
       el('div', { class: 'tbody' },
         showPhase ? el('div', { class: 'tphase', textContent: t.phase }) : null,
         el('div', { class: 'tt', textContent: t.title }), el('div', { class: 'td', textContent: t.detail })),
-      prog, go);
+      split, prog, go);
   }
   const openPhases = new Set();
   function renderTodo() {
@@ -410,9 +451,10 @@
   });
 
   function renderAll() {
-    renderTimer(); renderCharPick(); renderRunPanel(); renderFocusCard();
+    renderTimer(); renderCharPick(); renderRunPanel(); renderFocusCard(); renderSplits();
     renderTodo();
     renderSummary(); renderMarks(); renderAchievements(); renderChallenges(); renderSettings();
+    DG.splits.baseline(state);
   }
 
   // ---------- sync ----------

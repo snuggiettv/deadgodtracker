@@ -50,6 +50,15 @@
   .tm { font-family: ui-monospace, Menlo, Consolas, monospace; font-variant-numeric: tabular-nums; }
   .tm.on { color: #9fe07a; }
   .tview { min-width: 260px; }
+  .splitv { min-width: 360px; }
+  .splitv ul { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 4px; font-size: 17px; }
+  .splitv li, .splitv .stot { display: grid; grid-template-columns: 1fr auto 70px; gap: 10px; align-items: baseline; }
+  .splitv li span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .splitv b { font-variant-numeric: tabular-nums; font-weight: 600; }
+  .splitv i { font-style: normal; text-align: right; font-variant-numeric: tabular-nums; color: var(--muted); }
+  .splitv i.ahead { color: #6fd08c; } .splitv i.behind { color: #f07a6a; }
+  .splitv li.now { color: var(--gold, #e6b84a); border-top: 1px solid #ffffff22; padding-top: 4px; }
+  .splitv .stot { margin-top: 6px; font-size: 15px; color: var(--muted); }
   .tview .big { font-size: 54px; margin: 4px 0 0; }
   .runv { min-width: 340px; }
   .runv .rname { font-size: 34px; font-weight: 800; margin: 2px 0 8px; }

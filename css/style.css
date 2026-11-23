@@ -212,3 +212,14 @@ body.touring { padding-bottom: 340px; }
 table.marks th.has-tip { cursor: help; text-decoration: underline dotted #ffffff40; text-underline-offset: 3px; }
 .marks-legend { display: flex; flex-wrap: wrap; gap: 4px 14px; margin: 0 0 10px; font-size: .82rem; }
 .marks-legend b { color: var(--gold); }
+/* splits */
+table.splits { width: 100%; border-collapse: collapse; font-size: .9rem; margin-top: 6px; }
+table.splits th, table.splits td { padding: 5px 6px; border-bottom: 1px solid #ffffff12; text-align: left; }
+table.splits th { color: var(--muted, #a89a8a); font-weight: 600; font-size: .78rem; }
+table.splits .n { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+table.splits .dim, .tsplit.dim { color: var(--muted, #a89a8a); }
+table.splits tr.cur td { background: #ffffff08; }
+.delta.ahead { color: #6fd08c; } .delta.behind { color: #f07a6a; }
+.split-total { margin: 6px 0; font-variant-numeric: tabular-nums; }
+.split-all { margin-top: 8px; } .split-all summary { cursor: pointer; color: var(--gold); }
+.tsplit { font-size: .8rem; font-variant-numeric: tabular-nums; white-space: nowrap; text-align: right; }

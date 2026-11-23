@@ -116,12 +116,18 @@
       v: 1, ach: {}, marks: {}, items: 0, itemsTotal: 719, repPlus: true, autoLink: true, updated: 0,
       current: null, // index of the character being played right now
       timer: emptyTimer(),
+      splits: {}, // route step label -> timer ms when it was finished
     };
   }
   function emptyTimer() { return { running: false, elapsed: 0, startedAt: 0, sessions: 0, ended: false }; }
   function normTimer(t) {
     if (!t || typeof t !== 'object') return emptyTimer();
     return { running: !!t.running, elapsed: Math.max(0, +t.elapsed || 0), startedAt: +t.startedAt || 0, sessions: Math.max(0, +t.sessions || 0), ended: !!t.ended };
+  }
+  function normSplits(o) {
+    const out = {};
+    if (o && typeof o === 'object') for (const [k, v] of Object.entries(o)) if (Number.isFinite(+v) && +v >= 0) out[k] = +v;
+    return out;
   }
   function normalize(s) {
     const e = emptyState();
@@ -137,6 +143,7 @@
       updated: +s.updated || 0,
       current: Number.isInteger(s.current) && s.current >= 0 && s.current < CHARACTERS.length ? s.current : null,
       timer: normTimer(s.timer),
+      splits: normSplits(s.splits),
     };
   }
   // Speedrun timer (milliseconds). Runs between Start and Pause; pausing is allowed only between runs.
@@ -235,8 +242,11 @@
   function encode(s) {
     const markCount = DG.CHARACTERS.length * DG.BOSSES.length;
     const core = 6 + Math.ceil(MAX_ID / 8) + Math.ceil(markCount / 4);
-    const bytes = new Uint8Array(core + 20);
-    bytes[0] = 2;
+    // v3 extras: splits as (route step index uint16, timer tenths uint32) pairs
+    const labels = DG.splits ? DG.splits.labels : [];
+    const sp = labels.map((l, i) => [i, s.splits && s.splits[l]]).filter((x) => x[1] != null);
+    const bytes = new Uint8Array(core + 20 + 2 + sp.length * 6);
+    bytes[0] = 3;
     bytes[1] = (s.repPlus ? 1 : 0) | (s.autoLink ? 2 : 0);
     bytes[2] = s.items >> 8; bytes[3] = s.items & 255;
     bytes[4] = s.itemsTotal >> 8; bytes[5] = s.itemsTotal & 255;
@@ -254,6 +264,8 @@
     dv.setFloat64(2, s.timer.elapsed);
     dv.setFloat64(10, s.timer.startedAt);
     dv.setUint16(18, Math.min(65535, s.timer.sessions));
+    dv.setUint16(20, sp.length);
+    sp.forEach(([i, ms], n) => { dv.setUint16(22 + n * 6, i); dv.setUint32(24 + n * 6, Math.min(4294967295, Math.round(ms / 100))); });
     let bin = ''; bytes.forEach((b) => (bin += String.fromCharCode(b)));
     return btoa(bin).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
   }
@@ -262,7 +274,7 @@
     if (code.startsWith('{')) return DG.normalize(JSON.parse(code)); // accept JSON backups too
     const bin = atob(code.replace(/-/g, '+').replace(/_/g, '/'));
     const b = Uint8Array.from(bin, (c) => c.charCodeAt(0));
-    if (b[0] !== 1 && b[0] !== 2) throw new Error('Unknown save code version');
+    if (b[0] < 1 || b[0] > 3) throw new Error('Unknown save code version');
     const s = DG.emptyState();
     s.repPlus = !!(b[1] & 1); s.autoLink = !!(b[1] & 2);
     s.items = (b[2] << 8) | b[3]; s.itemsTotal = (b[4] << 8) | b[5] || s.itemsTotal;
@@ -275,10 +287,17 @@
       if (l) s.marks[ci + ':' + DG.BOSSES[bi].id] = Math.min(l, 2);
     }
     o += Math.ceil((DG.CHARACTERS.length * DG.BOSSES.length) / 4);
-    if (b[0] === 2 && b.length >= o + 20) {
+    if (b[0] >= 2 && b.length >= o + 20) {
       const dv = new DataView(b.buffer, o);
       const cur = dv.getUint8(0); s.current = cur < DG.CHARACTERS.length ? cur : null;
       s.timer = { ended: !!(dv.getUint8(1) & 2), running: (dv.getUint8(1) & 1) === 1, elapsed: dv.getFloat64(2) || 0, startedAt: dv.getFloat64(10) || 0, sessions: dv.getUint16(18) };
+      if (b[0] >= 3 && b.length >= o + 22) {
+        const labels = DG.splits ? DG.splits.labels : [], n = dv.getUint16(20);
+        for (let k = 0; k < n && o + 28 + k * 6 <= b.length; k++) {
+          const l = labels[dv.getUint16(22 + k * 6)];
+          if (l) s.splits[l] = dv.getUint32(24 + k * 6) * 100;
+        }
+      }
     }
     return s;
   }

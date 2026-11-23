@@ -55,7 +55,7 @@
         <div class="hint" id="run-session"></div>
         <div class="row">
           <button class="primary" id="t-toggle">Start</button>
-          <button id="t-end">End session</button>
+          <button id="t-end" title="Pauses the timer and downloads a backup file">End session</button>
           <button id="t-reset">Reset timer</button>
         </div>
         <p class="hint">DeadGod% rules: the timer starts with your first run and stops when Dead God pops (it stops itself when you tick it). Pause only between runs. At the end of each stream, show the in-game Secrets menu.</p>
@@ -66,6 +66,7 @@
       </div>
     </div>
     <div class="card" id="run-panel"></div>
+    <div class="card" id="run-splits"></div>
   </section>
 
   <section id="tab-marks" hidden>
@@ -175,6 +176,7 @@
               <option value="next">Next up (to-do)</option>
               <option value="timer">Timer only</option>
               <option value="run">This run (character + marks + timer)</option>
+              <option value="splits">Splits vs D0ggy / neonomi</option>
             </select>
           </label>
           <label class="inline">Scale <input type="number" id="ov-scale" value="1" step="0.1" min="0.3" max="4"></label>

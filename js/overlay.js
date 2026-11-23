@@ -1,5 +1,5 @@
 /* Overlay page for OBS / Meld browser sources.
-   URL options: ?view=summary|bar|marks|remaining|next|timer|run &count=4 &timer=0 &scale=1.5 &bg=1 &tainted=0
+   URL options: ?view=summary|bar|marks|remaining|next|timer|run|splits &count=4 &cmp=pb|neo &timer=0 &scale=1.5 &bg=1 &tainted=0
    Progress comes from this browser's saved state, or from a #code=... snapshot. */
 (function () {
   'use strict';
@@ -85,10 +85,27 @@
       <div class="rfoot"><span>${st.achDone}/${st.achTotal} secrets</span>${showTimer ? `<span class="tm ${state.timer.running ? 'on' : ''}">${tms()}</span>` : ''}</div></div>`;
   }
 
+  // Splits: the last few finished steps against D0ggy's PB (or neonomi with &cmp=neo), plus the live step.
+  const cmp = p.get('cmp') === 'neo' ? 'neo' : 'pb';
+  const ft = (ms) => (ms == null ? '—' : DG.fmtTime(ms, false));
+  const dl = (d) => (d == null ? '<i></i>' : `<i class="${d <= 0 ? 'ahead' : 'behind'}">${DG.splits.fmtDelta(d)}</i>`);
+  let splitCache = null;
+  function splitsView() {
+    if (!splitCache || splitCache.s !== state) splitCache = { s: state, t: DG.splits.table(state, cmp) };
+    const t = splitCache.t;
+    const live = Math.max(0, DG.timerMs(state) - (t.done.length ? t.done[t.done.length - 1].at : 0));
+    const rows = t.done.slice(-(+p.get('count') || 4)).map((d) => `<li><span>${esc(d.label)}</span><b>${ft(d.seg)}</b>${dl(d.delta)}</li>`).join('');
+    const now = t.next ? `<li class="now"><span>${esc(t.next.label)}</span><b class="tm ${state.timer.running ? 'on' : ''}">${ft(live)}</b><i class="ref">${ft(t.next.ref)}</i></li>` : '';
+    return `<div class="panel splitv"><div class="title">Splits vs ${DG.splits.cmpName(cmp)}</div>
+      <ul>${rows}${now}</ul>
+      ${t.compared ? `<div class="stot"><span>Total</span><b>${ft(t.mine)}</b>${dl(t.delta)}</div>` : ''}
+      ${showTimer ? `<div class="stot"><span>Timer</span><b class="tm ${state.timer.running ? 'on' : ''}">${tms()}</b><i></i></div>` : ''}</div>`;
+  }
+
   let lastHtml = '';
   function render(flash) {
     const st = DG.stats(state);
-    const html = view === 'bar' ? slim(st) : view === 'marks' ? marks() : view === 'remaining' ? remaining(st) : view === 'next' ? next() : view === 'timer' ? timerView() : view === 'run' ? runView(st) : summary(st);
+    const html = view === 'bar' ? slim(st) : view === 'marks' ? marks() : view === 'remaining' ? remaining(st) : view === 'next' ? next() : view === 'timer' ? timerView() : view === 'run' ? runView(st) : view === 'splits' ? splitsView() : summary(st);
     if (html === lastHtml) return;
     lastHtml = html;
     root.innerHTML = html;
