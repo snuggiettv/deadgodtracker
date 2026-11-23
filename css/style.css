@@ -205,3 +205,10 @@ details.phase .pnote { color: var(--muted); font-size: .88rem; margin: 0 14px 8p
 .contact h3 { margin: 0 0 6px; color: var(--gold); }
 .contact p { margin: 0; }
 body.touring { padding-bottom: 340px; }
+
+/* instant tooltips + legend */
+.tip { position: fixed; z-index: 60; pointer-events: none; background: #0e0b09; color: var(--text); border: 1px solid var(--gold); border-radius: 7px; padding: 5px 9px; font-size: .85rem; max-width: 260px; opacity: 0; transition: opacity .08s; box-shadow: 0 4px 14px #000a; left: 0; top: 0; }
+.tip.show { opacity: 1; }
+table.marks th.has-tip { cursor: help; text-decoration: underline dotted #ffffff40; text-underline-offset: 3px; }
+.marks-legend { display: flex; flex-wrap: wrap; gap: 4px 14px; margin: 0 0 10px; font-size: .82rem; }
+.marks-legend b { color: var(--gold); }

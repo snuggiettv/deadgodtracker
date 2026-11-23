@@ -55,7 +55,7 @@
   // ---------- marks ----------
   function renderMarks() {
     const head = el('tr', {}, el('th', { class: 'char', textContent: 'Character' }),
-      DG.BOSSES.map((b) => el('th', { textContent: b.short, title: b.name })),
+      DG.BOSSES.map((b) => el('th', { textContent: b.short, class: 'has-tip', tabIndex: 0, dataset: { tip: b.id === 'greed' ? 'Ultra Greed (G = Greed, GG = Greedier)' : b.id === 'bluebaby' ? '??? (Blue Baby, in The Chest)' : b.name } })),
       el('th', { textContent: 'Hard' }));
     const rows = DG.CHARACTERS.map((c, ci) => {
       let hard = 0;
@@ -64,8 +64,8 @@
         if (l === 2) hard++;
         const label = ['–', b.id === 'greed' ? 'G' : 'N', b.id === 'greed' ? 'GG' : 'H'][l];
         const btn = el('button', {
-          class: 'mark', textContent: label, dataset: { l, ci, bi },
-          title: `${c.name} – ${b.name}: ${['not done', b.normal || 'Normal', b.hard || 'Hard'][l]}`,
+          class: 'mark', textContent: label,
+          dataset: { l, ci, bi, tip: `${c.name} – ${b.name}: ${['not done', b.normal || 'Normal', b.hard || 'Hard'][l]}` },
           'aria-label': `${c.name} ${b.name}`,
         });
         return el('td', {}, btn);
@@ -86,6 +86,31 @@
     const added = DG.setMark(state, ci, bi, next);
     commit(added.length ? `Also ticked: ${added.map((id) => DG.ACH_BY_ID.get(id).name).join(', ')}` : null);
   }
+
+  // Legend for the boss abbreviations.
+  $('#marks-legend').replaceChildren(...DG.BOSSES.map((b) => el('span', {}, el('b', { textContent: b.short }), ' ' + (b.id === 'greed' ? 'Ultra Greed / Greedier' : b.id === 'bluebaby' ? '??? (Blue Baby)' : b.name))));
+
+  // Instant tooltips for anything with data-tip (mouse hover, keyboard focus, or a tap on headers on phones).
+  const tip = el('div', { class: 'tip', role: 'tooltip' });
+  document.body.append(tip);
+  let tipFor = null, lastTouch = 0;
+  function showTip(t) {
+    tipFor = t; tip.textContent = t.dataset.tip; tip.classList.add('show');
+    const r = t.getBoundingClientRect(), w = tip.offsetWidth, h = tip.offsetHeight;
+    let x = r.left + r.width / 2 - w / 2; x = Math.max(8, Math.min(window.innerWidth - w - 8, x));
+    let y = r.top - h - 8; if (y < 8) y = r.bottom + 8;
+    tip.style.left = x + 'px'; tip.style.top = y + 'px';
+  }
+  function hideTip() { tipFor = null; tip.classList.remove('show'); }
+  document.addEventListener('mouseover', (e) => { if (Date.now() - lastTouch < 800) return; const t = e.target.closest('[data-tip]'); if (t) showTip(t); else if (tipFor) hideTip(); });
+  document.addEventListener('focusin', (e) => { const t = e.target.closest('[data-tip]'); if (t) showTip(t); });
+  document.addEventListener('focusout', () => { if (Date.now() - lastTouch > 800) hideTip(); });
+  document.addEventListener('scroll', hideTip, true);
+  document.addEventListener('touchstart', (e) => {
+    lastTouch = Date.now();
+    const t = e.target.closest('th[data-tip]');
+    if (t) { showTip(t); clearTimeout(tip._t); tip._t = setTimeout(hideTip, 2500); } else hideTip();
+  }, { passive: true });
 
   $('#marks').addEventListener('click', (e) => {
     const b = e.target.closest('.mark'); if (!b) return;
