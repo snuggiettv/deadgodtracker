@@ -70,7 +70,24 @@
   }
   const esc = (t) => String(t).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
 
-  const showTimer = p.get('timer') !== '0';
+  // Pinned timer: always on screen, outside the rotating views (corners sit at the edges of the browser source).
+  const PIN = { top: 1, bottom: 1, tl: 1, tr: 1, bl: 1, br: 1 };
+  const pin = PIN[p.get('pin')] ? p.get('pin') : null;
+  const pinEl = document.createElement('div');
+  if (pin) {
+    pinEl.className = 'pin' + (pin.length === 2 ? ' corner ' + pin : '');
+    if (pin === 'top') document.getElementById('wrap').prepend(pinEl);
+    else if (pin === 'bottom') document.getElementById('wrap').append(pinEl);
+    else document.body.append(pinEl);
+  }
+  let lastPin = '';
+  function renderPin() {
+    if (!pin) return;
+    pinEl.hidden = view === 'timer'; // the Timer view already shows it
+    const html = `<span class="lbl">DeadGod%</span><b class="tm ${state.timer.running ? 'on' : ''}">${tms()}</b>`;
+    if (html !== lastPin) { lastPin = html; pinEl.innerHTML = html; }
+  }
+  const showTimer = p.get('timer') !== '0' && !pin; // with a pinned timer, views don't repeat it
   const tms = () => DG.fmtTime(DG.timerMs(state));
   function timerRow() {
     if (!showTimer || (!state.timer.elapsed && !state.timer.running)) return '';
@@ -109,6 +126,7 @@
 
   let lastHtml = '';
   function render(flash) {
+    renderPin();
     const st = DG.stats(state);
     const html = view === 'bar' ? slim(st) : view === 'marks' ? marks() : view === 'remaining' ? remaining(st) : view === 'next' ? next() : view === 'timer' ? timerView() : view === 'run' ? runView(st) : view === 'splits' ? splitsView() : summary(st);
     if (html === lastHtml) return;

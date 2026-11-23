@@ -188,6 +188,20 @@
           <label class="inline"><input type="checkbox" id="ov-tainted" checked> Include tainted (grid)</label>
           <label class="inline"><input type="checkbox" id="ov-timer" checked> Show timer (summary)</label>
         </div>
+        <div class="row">
+          <label class="inline"><input type="checkbox" id="ov-pin-on"> Always show timer</label>
+          <label class="inline" id="ov-pin-wrap" style="display:none">at
+            <select id="ov-pin">
+              <option value="tr">Top-right corner</option>
+              <option value="tl">Top-left corner</option>
+              <option value="br">Bottom-right corner</option>
+              <option value="bl">Bottom-left corner</option>
+              <option value="top">Above the panel</option>
+              <option value="bottom">Below the panel</option>
+            </select>
+          </label>
+        </div>
+        <p class="hint timer-rule">⏱ DeadGod% rules need the timer visible on stream the whole time. Either tick <b>Always show timer</b> so this overlay keeps it on screen on every view (even while rotating), or add a second browser source with just the <b>Timer only</b> view and pin it where you like. Corner positions sit in the corners of the browser source, so size the source to cover the area where you want it.</p>
         <div class="url-box"><input id="ov-url" readonly><button class="primary" id="ov-copy">Copy</button></div>
         <h3>OBS (ticks show up live)</h3>
         <ol class="steps">

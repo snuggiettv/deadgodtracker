@@ -12,6 +12,7 @@ progress on stream with an OBS / Meld browser-source overlay. No build step, no 
   - `view=summary` (default) · `bar` · `marks` · `remaining` · `next` (to-do, `&count=4`) · `timer` · `run` (current character + marks + timer) · `splits` (route splits vs D0ggy's PB, `&cmp=neo` for neonomi)
   - List several views with commas (`view=summary,splits,run`) to rotate between them, with `&cycle=15` seconds per view
   - `timer=0` to hide the timer in the summary
+  - `pin=tr|tl|br|bl|top|bottom` keeps the speedrun timer on screen on every view (corners of the browser source, or above/below the panel). DeadGod% rules need a visible timer: use this, or a separate `view=timer` source
   - `scale=1.5` to resize, `bg=1` for a dark backdrop (default is transparent), `tainted=0` to hide tainted rows in the grid
   - `room=…` to follow a sync room
   - `#code=…` to show a frozen snapshot from a save code instead of this browser's progress
