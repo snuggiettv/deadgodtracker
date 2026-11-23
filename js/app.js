@@ -195,7 +195,7 @@
   $('#items').addEventListener('change', (e) => { state.items = clampItems(+e.target.value); commit(); });
   $('#items-dec').addEventListener('click', () => { state.items = clampItems(state.items - 1); commit(); });
   $('#items-inc').addEventListener('click', () => { state.items = clampItems(state.items + 1); commit(); });
-  $('#items-total').addEventListener('change', (e) => { state.itemsTotal = Math.max(1, Math.round(+e.target.value) || 722); state.items = clampItems(state.items); commit(); });
+  $('#items-total').addEventListener('change', (e) => { state.itemsTotal = Math.max(1, Math.round(+e.target.value) || 725); state.items = clampItems(state.items); commit(); });
   $('#rep-plus').addEventListener('change', (e) => { state.repPlus = e.target.checked; commit(); });
   $('#auto-link').addEventListener('change', (e) => {
     state.autoLink = e.target.checked;

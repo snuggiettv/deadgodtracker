@@ -113,7 +113,7 @@
   // ---- state ----
   function emptyState() {
     return {
-      v: 1, ach: {}, marks: {}, items: 0, itemsTotal: 722, repPlus: true, autoLink: true, updated: 0,
+      v: 1, ach: {}, marks: {}, items: 0, itemsTotal: 725, repPlus: true, autoLink: true, updated: 0,
       current: null, // index of the character being played right now
       timer: emptyTimer(),
       splits: {}, // route step label -> timer ms when it was finished
@@ -124,8 +124,8 @@
     if (!t || typeof t !== 'object') return emptyTimer();
     return { running: !!t.running, elapsed: Math.max(0, +t.elapsed || 0), startedAt: +t.startedAt || 0, sessions: Math.max(0, +t.sessions || 0), ended: !!t.ended };
   }
-  // 719 was the old default item total; the Repentance+ collection page shows 722.
-  const migrateTotal = (n) => (n === 719 ? 722 : n);
+  // 719 and 722 were earlier default item totals; the Repentance+ collection page shows 725.
+  const migrateTotal = (n) => (n === 719 || n === 722 ? 725 : n);
   function normSplits(o) {
     const out = {};
     if (o && typeof o === 'object') for (const [k, v] of Object.entries(o)) if (Number.isFinite(+v) && +v >= 0) out[k] = +v;
