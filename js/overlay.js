@@ -129,11 +129,30 @@
     renderPin();
     const st = DG.stats(state);
     const html = view === 'bar' ? slim(st) : view === 'marks' ? marks() : view === 'remaining' ? remaining(st) : view === 'next' ? next() : view === 'timer' ? timerView() : view === 'run' ? runView(st) : view === 'splits' ? splitsView() : summary(st);
-    if (html === lastHtml) return;
-    lastHtml = html;
-    root.innerHTML = html;
-    if (flash && root.firstElementChild) root.firstElementChild.classList.add('flash');
+    if (html !== lastHtml) {
+      lastHtml = html;
+      root.innerHTML = html;
+      if (flash && root.firstElementChild) root.firstElementChild.classList.add('flash');
+    }
+    placePin();
   }
+
+  // Keep a corner timer from covering the panel: a top corner pushes the panel down,
+  // a bottom corner drops the timer just below the panel when the source is too short.
+  const wrap = document.getElementById('wrap');
+  const scale = +p.get('scale') || 1;
+  function placePin() {
+    if (!pin || pin.length !== 2) return;
+    wrap.style.paddingTop = ''; pinEl.classList.remove('below'); pinEl.style.top = '';
+    if (pinEl.hidden) return;
+    const r = root.getBoundingClientRect(), q = pinEl.getBoundingClientRect();
+    const hit = q.left < r.right && q.right > r.left && q.top < r.bottom && q.bottom > r.top;
+    if (!hit) return;
+    if (pin[0] === 't') wrap.style.paddingTop = (10 + (q.height + 8) / scale) + 'px';
+    else { pinEl.classList.add('below'); pinEl.style.top = r.bottom + 'px'; }
+  }
+  window.addEventListener('resize', placePin);
+  if (document.fonts) document.fonts.ready.then(placePin);
 
   if (!codeMatch) DG.onExternalChange((s) => { state = s; render(true); });
   const room = p.get('room');
