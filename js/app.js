@@ -257,7 +257,6 @@
     if (!$('#ov-timer').checked) p.set('timer', '0');
     if ($('#ov-pin-on').checked) p.set('pin', $('#ov-pin').value);
     $('#ov-pin-wrap').style.display = $('#ov-pin-on').checked ? '' : 'none';
-    if (views.includes('splits') && cmp === 'neo') p.set('cmp', 'neo');
     const room = DG.sync.getRoom(); if (room && !withCode) p.set('watch', DG.sync.watchKey(room)); // read-only feed, never the room
     return base + 'overlay.html?' + p.toString() + (withCode ? '#code=' + DG.encode(state) : '');
   }
@@ -381,30 +380,22 @@
   }
 
   // ---------- splits ----------
-  let cmp = 'pb';
-  try { cmp = localStorage.getItem('deadgod-tracker:cmp') === 'neo' ? 'neo' : 'pb'; } catch (_) { /* ignore */ }
   const fmt = (ms) => (ms == null ? '—' : DG.fmtTime(ms, false));
-  const deltaEl = (d) => el('span', { class: 'delta ' + (d == null ? '' : d <= 0 ? 'ahead' : 'behind'), textContent: d == null ? '' : DG.splits.fmtDelta(d) });
   function splitRow(d) {
-    return el('tr', {}, el('td', { textContent: d.label }), el('td', { class: 'n', textContent: fmt(d.seg) }),
-      el('td', { class: 'n dim', textContent: fmt(d.ref) }), el('td', { class: 'n' }, deltaEl(d.delta)));
+    return el('tr', {}, el('td', { textContent: d.label }), el('td', { class: 'n', textContent: fmt(d.seg) }), el('td', { class: 'n dim', textContent: fmt(d.at) }));
   }
   function renderSplits() {
-    const t = DG.splits.table(state, cmp), name = DG.splits.cmpName(cmp);
-    const sw = el('div', { class: 'diff-switch' }, ['pb', 'neo'].map((c) => el('button', { class: cmp === c ? 'on' : '', textContent: DG.splits.cmpName(c),
-      onclick: () => { cmp = c; try { localStorage.setItem('deadgod-tracker:cmp', c); } catch (_) { /* ignore */ } renderSplits(); renderTodo(); } })));
+    const t = DG.splits.table(state);
     const recent = t.done.slice(-5);
-    const head = el('tr', {}, el('th', { textContent: 'Step' }), el('th', { class: 'n', textContent: 'Time' }), el('th', { class: 'n', textContent: name }), el('th', { class: 'n', textContent: '±' }));
+    const head = el('tr', {}, el('th', { textContent: 'Step' }), el('th', { class: 'n', textContent: 'Took' }), el('th', { class: 'n', textContent: 'Timer' }));
     const nextRow = t.next ? el('tr', { class: 'cur' }, el('td', {}, el('b', { textContent: 'Now: ' }), t.next.label),
-      el('td', { class: 'n' }, el('span', { id: 'split-live', textContent: fmt(t.next.seg) })), el('td', { class: 'n dim', textContent: fmt(t.next.ref) }), el('td')) : null;
-    const total = t.compared ? el('p', { class: 'split-total' }, `Over your ${t.compared} split${t.compared === 1 ? '' : 's'}: ${fmt(t.mine)} vs ${name} ${fmt(t.theirs)} `, deltaEl(t.delta)) : null;
+      el('td', { class: 'n' }, el('span', { id: 'split-live', textContent: fmt(t.next.seg) })), el('td')) : null;
     const all = t.done.length > 5 ? el('details', { class: 'split-all' }, el('summary', { textContent: `All ${t.done.length} splits` }),
       el('table', { class: 'splits' }, el('thead', {}, head.cloneNode(true)), el('tbody', {}, t.done.map(splitRow)))) : null;
     $('#run-splits').replaceChildren(...[
-      el('div', { class: 'row' }, el('h3', { style: 'margin:0;flex:1', textContent: 'Route splits' }), el('span', { class: 'hint', textContent: 'Compare with' }), sw),
+      el('h3', { style: 'margin:0', textContent: 'Route splits' }),
       el('p', { class: 'hint', textContent: t.done.length ? 'Each step of the To-do route is a split. It is timed when the step ticks off while the timer is going.'
-        : 'Each step of the To-do route is a split. Start the timer and split times appear here as steps tick off. Times are compared per step with D0ggy\'s PB or neonomi\'s run from their split sheet.' }),
-      total,
+        : 'Each step of the To-do route is a split. Start the timer and your split times appear here as steps tick off.' }),
       el('table', { class: 'splits' }, el('thead', {}, head), el('tbody', {}, recent.map(splitRow), nextRow)),
       all].filter(Boolean));
   }
@@ -418,10 +409,8 @@
     const go = t.ci != null && !t.done
       ? el('button', { class: 'go', textContent: 'Play →', title: 'Set as the character you are playing', onclick: () => { state.current = t.ci; commit(); showTab('run'); } })
       : t.tab ? el('button', { class: 'go', textContent: TAB_NAMES[t.tab] + ' →', onclick: () => showTab(t.tab) }) : null;
-    const sp = t.done ? DG.splits.splitFor(state, t.title, cmp) : null;
-    const ref = DG.splits.refOf(t, cmp);
-    const split = sp ? el('div', { class: 'tsplit', title: `Your time for this step vs ${DG.splits.cmpName(cmp)}` }, fmt(sp.seg), ' ', deltaEl(sp.delta))
-      : !t.done && ref ? el('div', { class: 'tsplit dim', title: `${DG.splits.cmpName(cmp)} took this long on this step` }, `${cmp === 'neo' ? 'neonomi' : 'D0ggy'} ${fmt(ref)}`) : null;
+    const sp = t.done ? DG.splits.splitFor(state, t.title) : null;
+    const split = sp ? el('div', { class: 'tsplit', title: 'How long this step took you' }, fmt(sp.seg)) : null;
     return el('div', { class: 'task' + (t.done ? ' done' : '') + (t.locked ? ' locked' : '') + (t.optional ? ' optional' : '') }, cb,
       el('div', { class: 'tbody' },
         showPhase ? el('div', { class: 'tphase', textContent: t.phase }) : null,

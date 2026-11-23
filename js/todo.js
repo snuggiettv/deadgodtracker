@@ -53,20 +53,12 @@
   // Mom's Heart kill count -> achievement for that many kills (1 kill has none; any Mom's Heart mark counts).
   const HEART_AT = { 2: 150, 3: 8, 4: 139, 5: 33, 6: 140, 7: 141, 8: 10, 9: 11, 10: 32, 11: 34 };
 
-  // "1:02:14.945" -> ms (null for "-" or blank).
-  function parseTime(t) {
-    if (!t || t === '-') return null;
-    const p = t.split(':').map(Number);
-    return Math.round(p.reduce((a, x) => a * 60 + x, 0) * 1000) || null;
-  }
-
   // Parse the route once into steps with structured requirements.
   const ROUTE = (window.DG_ROUTE || []).map(([chapter, text], ch) => ({
     chapter, id: 'r' + ch,
     steps: text.trim().split('\n').map((line, i) => {
-      const [label, req = '', tip = '', times = ''] = line.split('|').map((x) => x.trim());
-      const [pb, neo] = times.split(/\s+/).map(parseTime);
-      const st = { key: `r${ch}-${i}`, label, tip, ci: null, marks: [], achs: [], items: false, heart: 0, optional: false, ref: { pb, neo } };
+      const [label, req = '', tip = ''] = line.split('|').map((x) => x.trim());
+      const st = { key: `r${ch}-${i}`, label, tip, ci: null, marks: [], achs: [], items: false, heart: 0, optional: false };
       const toks = req.split(/\s+/).filter(Boolean);
       const excl = new Set(toks.filter((t) => t.startsWith('-')).map((t) => t.slice(1)));
       for (const t of toks) {
@@ -114,7 +106,7 @@
     const stt = DG.stats(s);
     if (st.items) parts.push(stt.items >= stt.itemsTotal);
     const met = parts.filter(Boolean).length;
-    const t = { key: st.key, title: st.label, done: parts.length > 0 && met === parts.length, optional: st.optional, ref: st.ref };
+    const t = { key: st.key, title: st.label, done: parts.length > 0 && met === parts.length, optional: st.optional };
     const bits = [];
     if (st.tip) bits.push(st.tip);
     if (st.heart && HEART_AT[st.heart]) bits.push('Unlocks ' + ach(HEART_AT[st.heart]).name);
@@ -195,32 +187,24 @@
     if (!s.timer.sessions || ms <= 0) return;
     for (const st of STEPS) if (now.has(st.label) && !prev.has(st.label) && s.splits[st.label] == null) s.splits[st.label] = Math.round(ms);
   }
-  const refOf = (st, cmp) => { const r = st.ref || {}; return (cmp === 'neo' ? r.neo ?? r.pb : r.pb ?? r.neo) ?? null; };
-  // Splits in the order they happened, with segment times and the comparison for each.
-  function splitTable(s, cmp = 'pb') {
+  // Your splits in the order they happened, with the time each step took (since the previous split).
+  function splitTable(s) {
     const done = STEPS.filter((st) => s.splits[st.label] != null)
-      .map((st) => ({ label: st.label, chapter: st.chapter, at: s.splits[st.label], ref: refOf(st, cmp) }))
+      .map((st) => ({ label: st.label, chapter: st.chapter, at: s.splits[st.label] }))
       .sort((a, b) => a.at - b.at);
-    let prev = 0, mine = 0, theirs = 0;
-    for (const d of done) {
-      d.seg = d.at - prev; prev = d.at;
-      d.delta = d.ref != null ? d.seg - d.ref : null;
-      if (d.ref != null) { mine += d.seg; theirs += d.ref; }
-    }
+    let prev = 0;
+    for (const d of done) { d.seg = d.at - prev; prev = d.at; }
     const ds = doneSet(s);
     const nextSt = STEPS.find((st) => !st.optional && !ds.has(st.label));
-    const next = nextSt ? { label: nextSt.label, chapter: nextSt.chapter, ref: refOf(nextSt, cmp), seg: Math.max(0, DG.timerMs(s) - prev) } : null;
-    return { done, next, mine, theirs, delta: mine - theirs, compared: done.filter((d) => d.ref != null).length };
+    const next = nextSt ? { label: nextSt.label, chapter: nextSt.chapter, seg: Math.max(0, DG.timerMs(s) - prev) } : null;
+    return { done, next };
   }
-  function splitFor(s, label, cmp) {
+  function splitFor(s, label) {
     if (s.splits[label] == null) return null;
-    return splitTable(s, cmp).done.find((d) => d.label === label) || null;
+    return splitTable(s).done.find((d) => d.label === label) || null;
   }
-  // Signed short time for deltas: "+1:02" / "−0:45".
-  function fmtDelta(ms) { return (ms < 0 ? '−' : '+') + DG.fmtTime(Math.abs(ms), false); }
   const STEP_LABELS = STEPS.map((st) => st.label);
 
   DG.todo = { build, nextUp, focus, charUnlocked };
-  DG.splits = { baseline, record, table: splitTable, splitFor, refOf, fmtDelta, labels: STEP_LABELS,
-    cmpName: (cmp) => (cmp === 'neo' ? 'neonomi' : 'D0ggy PB') };
+  DG.splits = { baseline, record, table: splitTable, splitFor, labels: STEP_LABELS };
 })();

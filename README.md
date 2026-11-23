@@ -9,7 +9,7 @@ progress on stream with an OBS / Meld browser-source overlay. No build step, no 
   all 641 achievements with search and filters, the 45 challenges, collection-page item count,
   backup/restore and the overlay link builder.
 - `overlay.html` – the stream overlay. Options in the URL:
-  - `view=summary` (default) · `bar` · `marks` · `remaining` · `next` (to-do, `&count=4`) · `timer` · `run` (current character + marks + timer) · `splits` (route splits vs D0ggy's PB, `&cmp=neo` for neonomi)
+  - `view=summary` (default) · `bar` · `marks` · `remaining` · `next` (to-do, `&count=4`) · `timer` · `run` (current character + marks + timer) · `splits` (your route splits)
   - List several views with commas (`view=summary,splits,run`) to rotate between them, with `&cycle=15` seconds per view
   - `timer=0` to hide the timer in the summary
   - `pin=tr|tl|br|bl|top|bottom` keeps the speedrun timer on screen on every view (corners of the browser source, or above/below the panel). DeadGod% rules need a visible timer: use this, or a separate `view=timer` source
@@ -23,7 +23,7 @@ storage, so it updates live when both are open in the same browser profile. In O
 checklist as a **Custom Browser Dock** and the overlay as a **Browser source**: they share storage.
 Use *Download backup* or *Copy save code* to move progress between devices. *End session* also downloads a backup file automatically.
 
-Every To-do route step is a split: when a step ticks off while the timer is going, its time is recorded and compared with D0ggy's PB or neonomi's segment time from their split sheet.
+Every To-do route step is a split: when a step ticks off while the timer is going, its time is recorded.
 
 ### Cross-device sync (phone, Meld, any browser)
 Turn on **Sync between devices** under *Items & settings*. It creates a random room and sends each

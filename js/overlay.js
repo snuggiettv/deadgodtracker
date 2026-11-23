@@ -1,5 +1,5 @@
 /* Overlay page for OBS / Meld browser sources.
-   URL options: ?view=summary|bar|marks|remaining|next|timer|run|splits (comma-separate several to rotate) &cycle=15 &count=4 &cmp=pb|neo &timer=0 &scale=1.5 &bg=1 &tainted=0
+   URL options: ?view=summary|bar|marks|remaining|next|timer|run|splits (comma-separate several to rotate) &cycle=15 &count=4 &timer=0 &scale=1.5 &bg=1 &tainted=0
    &watch=<key> follows an editor's signed read-only feed; &page=1 shows the views stacked as a viewer page.
    Progress comes from this browser's saved state, a read-only feed, or a #code=... snapshot. */
 (function () {
@@ -112,20 +112,17 @@
       <div class="rfoot"><span>${st.achDone}/${st.achTotal} secrets</span>${showTimer ? `<span class="tm ${state.timer.running ? 'on' : ''}">${tms()}</span>` : ''}</div></div>`;
   }
 
-  // Splits: the last few finished steps against D0ggy's PB (or neonomi with &cmp=neo), plus the live step.
-  const cmp = p.get('cmp') === 'neo' ? 'neo' : 'pb';
+  // Splits: how long the last few finished route steps took, plus the live step.
   const ft = (ms) => (ms == null ? '—' : DG.fmtTime(ms, false));
-  const dl = (d) => (d == null ? '<i></i>' : `<i class="${d <= 0 ? 'ahead' : 'behind'}">${DG.splits.fmtDelta(d)}</i>`);
   let splitCache = null;
   function splitsView() {
-    if (!splitCache || splitCache.s !== state) splitCache = { s: state, t: DG.splits.table(state, cmp) };
+    if (!splitCache || splitCache.s !== state) splitCache = { s: state, t: DG.splits.table(state) };
     const t = splitCache.t;
     const live = Math.max(0, DG.timerMs(state) - (t.done.length ? t.done[t.done.length - 1].at : 0));
-    const rows = t.done.slice(-(+p.get('count') || 4)).map((d) => `<li><span>${esc(d.label)}</span><b>${ft(d.seg)}</b>${dl(d.delta)}</li>`).join('');
-    const now = t.next ? `<li class="now"><span>${esc(t.next.label)}</span><b class="tm ${state.timer.running ? 'on' : ''}">${ft(live)}</b><i class="ref">${ft(t.next.ref)}</i></li>` : '';
-    return `<div class="panel splitv"><div class="title">Splits vs ${DG.splits.cmpName(cmp)}</div>
+    const rows = t.done.slice(-(+p.get('count') || 4)).map((d) => `<li><span>${esc(d.label)}</span><b>${ft(d.seg)}</b><i>${ft(d.at)}</i></li>`).join('');
+    const now = t.next ? `<li class="now"><span>${esc(t.next.label)}</span><b class="tm ${state.timer.running ? 'on' : ''}">${ft(live)}</b><i></i></li>` : '';
+    return `<div class="panel splitv"><div class="title">Splits</div>
       <ul>${rows}${now}</ul>
-      ${t.compared ? `<div class="stot"><span>Total</span><b>${ft(t.mine)}</b>${dl(t.delta)}</div>` : ''}
       ${showTimer ? `<div class="stot"><span>Timer</span><b class="tm ${state.timer.running ? 'on' : ''}">${tms()}</b><i></i></div>` : ''}</div>`;
   }
 
