@@ -132,7 +132,7 @@
     const st = DG.stats(state);
     const one = (v) => (v === 'bar' ? slim(st) : v === 'marks' ? marks() : v === 'remaining' ? remaining(st) : v === 'next' ? next() : v === 'timer' ? timerView() : v === 'run' ? runView(st) : v === 'splits' ? splitsView() : summary(st));
     const html = waiting ? `<div class="panel"><div class="title">Dead God progress</div><p class="wait">Waiting for the next update from the runner…</p></div>`
-      : page ? `<div class="pagehead"><span>Dead God progress</span><small>Live · read-only</small></div>` + views.map(one).join('') : one(view);
+      : page ? `<div class="pagehead"><span>Dead God progress</span><small>Live</small></div>` + views.map(one).join('') : one(view);
     if (html !== lastHtml) {
       lastHtml = html;
       root.innerHTML = html;
