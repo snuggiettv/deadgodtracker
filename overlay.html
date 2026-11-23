@@ -79,6 +79,16 @@
   .pin.bl { bottom: 0; left: 0; transform-origin: bottom left; } .pin.br { bottom: 0; right: 0; transform-origin: bottom right; }
   .pin[hidden] { display: none; }
   .pin.below { bottom: auto; margin-top: 8px; } .pin.below.bl { transform-origin: top left; } .pin.below.br { transform-origin: top right; }
+  /* viewer page (&page=1) */
+  body.page { overflow: auto; background: #120d0a; text-shadow: none; }
+  .page #wrap { transform: none; display: block; max-width: 760px; margin: 0 auto; padding: 16px; }
+  .page #root { display: grid; gap: 14px; width: 100%; }
+  .page #root > * { min-width: 0; }
+  .page .pagehead { background: none !important; border: 0 !important; box-shadow: none !important; display: flex; justify-content: space-between; align-items: baseline; font-size: 24px; font-weight: 800; color: var(--gold); }
+  .page .pagehead small { font-size: 13px; color: var(--muted); font-weight: 600; }
+  .page .grid { overflow-x: auto; }
+  .page .slim { min-width: 0; flex-wrap: wrap; }
+  .wait { color: var(--muted); margin: 8px 0 0; }
   .flash { animation: flash 1.2s ease; }
   @keyframes flash { 0% { filter: brightness(1.8); } 100% { filter: none; } }
 </style>
@@ -87,6 +97,7 @@
 <div id="wrap"><div id="root"></div></div>
 <script src="data/achievements.js?v=496a0e0"></script>
 <script src="js/common.js?v=496a0e0"></script>
+<script src="js/vendor/nacl.min.js?v=0"></script>
 <script src="js/sync.js?v=496a0e0"></script>
 <script src="data/route.js?v=496a0e0"></script>
 <script src="js/todo.js?v=496a0e0"></script>

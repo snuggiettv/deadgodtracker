@@ -138,7 +138,9 @@
           <div class="room-code"><code id="sync-room"></code><button id="sync-copy-code">Copy code</button></div>
           <p class="hint">Editor link: open it on your phone or other browsers, or send it to a mod so they can tick progress for you during runs. Anyone with it can change your progress, so share it only with people you trust. Never put it on stream.</p>
           <div class="url-box"><input id="sync-link" readonly><button class="primary" id="sync-copy">Copy editor link</button></div>
-          <p class="hint">The overlay link on the Overlay setup tab uses the same room. It's view-only.</p>
+          <h3>Viewer link (read-only)</h3>
+          <p class="hint">A page anyone can open to follow your progress live: overall %, this run, splits, next up and the mark grid. It can't change anything and doesn't reveal your room code, so it's fine to post in chat or on your profile. The overlay link on the Overlay setup tab is read-only in the same way.</p>
+          <div class="url-box"><input id="viewer-link" readonly><button class="primary" id="viewer-copy">Copy viewer link</button></div>
           <div class="row"><button id="sync-leave">Turn off sync on this device</button></div>
         </div>
       </div>
@@ -234,6 +236,7 @@
 <div class="toast" id="toast"></div>
 <script src="data/achievements.js?v=496a0e0"></script>
 <script src="js/common.js?v=496a0e0"></script>
+<script src="js/vendor/nacl.min.js?v=0"></script>
 <script src="js/sync.js?v=496a0e0"></script>
 <script src="data/route.js?v=496a0e0"></script>
 <script src="js/todo.js?v=496a0e0"></script>

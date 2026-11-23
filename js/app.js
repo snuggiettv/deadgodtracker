@@ -258,7 +258,7 @@
     if ($('#ov-pin-on').checked) p.set('pin', $('#ov-pin').value);
     $('#ov-pin-wrap').style.display = $('#ov-pin-on').checked ? '' : 'none';
     if (views.includes('splits') && cmp === 'neo') p.set('cmp', 'neo');
-    const room = DG.sync.getRoom(); if (room && !withCode) p.set('room', room);
+    const room = DG.sync.getRoom(); if (room && !withCode) p.set('watch', DG.sync.watchKey(room)); // read-only feed, never the room
     return base + 'overlay.html?' + p.toString() + (withCode ? '#code=' + DG.encode(state) : '');
   }
   function renderOverlayBuilder() {
@@ -465,10 +465,12 @@
 
   // ---------- sync ----------
   const syncLink = (room) => base + '#room=' + room;
+  const viewerLink = (room) => base + 'overlay.html?page=1&watch=' + DG.sync.watchKey(room);
   function startSync(room) {
     if (sync) sync.close();
     DG.sync.setRoom(room);
     sync = DG.sync.connect(room, {
+      feed: true,
       getLocal: () => state,
       onRemote: (s) => { state = s; DG.save(state, true); renderAll(); },
       onStatus: (st) => { $('#sync-status').textContent = { live: 'on', connecting: 'connecting…', offline: 'offline', error: 'error' }[st] || st; },
@@ -481,10 +483,11 @@
     const room = DG.sync.getRoom();
     $('#sync-off').hidden = !!room; $('#sync-on').hidden = !room;
     if (!room) $('#sync-status').textContent = 'off';
-    if (room) { $('#sync-link').value = syncLink(room); $('#sync-room').textContent = room; }
+    if (room) { $('#sync-link').value = syncLink(room); $('#sync-room').textContent = room; $('#viewer-link').value = viewerLink(room); }
     renderOverlayBuilder();
   }
   $('#sync-start').addEventListener('click', () => { startSync(DG.sync.newRoom()); toast('Sync is on. Open the link on your other devices.'); });
+  $('#viewer-copy').addEventListener('click', () => copy(viewerLink(DG.sync.getRoom()), 'Viewer link copied'));
   $('#sync-copy').addEventListener('click', () => copy(syncLink(DG.sync.getRoom()), 'Editor link copied'));
   $('#sync-copy-code').addEventListener('click', () => copy(DG.sync.getRoom(), 'Room code copied'));
   $('#sync-join').addEventListener('click', () => {

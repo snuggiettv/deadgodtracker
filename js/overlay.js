@@ -1,23 +1,28 @@
 /* Overlay page for OBS / Meld browser sources.
    URL options: ?view=summary|bar|marks|remaining|next|timer|run|splits (comma-separate several to rotate) &cycle=15 &count=4 &cmp=pb|neo &timer=0 &scale=1.5 &bg=1 &tainted=0
-   Progress comes from this browser's saved state, or from a #code=... snapshot. */
+   &watch=<key> follows an editor's signed read-only feed; &page=1 shows the views stacked as a viewer page.
+   Progress comes from this browser's saved state, a read-only feed, or a #code=... snapshot. */
 (function () {
   'use strict';
   const DG = window.DG;
   const p = new URLSearchParams(location.search);
   // view can list several views (view=summary,splits,run); the overlay then rotates through them every `cycle` seconds.
   const VIEWS = ['summary', 'bar', 'marks', 'remaining', 'next', 'timer', 'run', 'splits'];
-  const views = (p.get('view') || 'summary').split(',').filter((v) => VIEWS.includes(v));
+  const page = p.get('page') === '1';
+  const views = (p.get('view') || (page ? 'summary,run,splits,next,marks' : 'summary')).split(',').filter((v) => VIEWS.includes(v));
   if (!views.length) views.push('summary');
   const cycle = Math.min(600, Math.max(3, +p.get('cycle') || 15)) * 1000;
   let vi = 0, view = views[0];
   const showTainted = p.get('tainted') !== '0';
   document.documentElement.style.setProperty('--scale', +p.get('scale') || 1);
-  if (p.get('bg') === '1') document.body.classList.add('bg');
+  if (p.get('bg') === '1' || page) document.body.classList.add('bg');
+  if (page) { document.body.classList.add('page'); document.title = 'Dead God progress'; }
 
   const codeMatch = /[#&]code=([\w-]+)/.exec(location.hash);
-  let state;
-  try { state = codeMatch ? DG.decode(codeMatch[1]) : DG.load(); } catch (_) { state = DG.load(); }
+  const watchKey = !codeMatch && DG.sync && DG.sync.validWatch(p.get('watch')) ? p.get('watch') : null;
+  let state, waiting = false;
+  if (watchKey) { state = DG.emptyState(); waiting = true; } // never show (or overwrite) this browser's own progress
+  else try { state = codeMatch ? DG.decode(codeMatch[1]) : DG.load(); } catch (_) { state = DG.load(); }
 
   const root = document.getElementById('root');
   const pct = (n, d) => DG.pct(n, d);
@@ -128,7 +133,9 @@
   function render(flash) {
     renderPin();
     const st = DG.stats(state);
-    const html = view === 'bar' ? slim(st) : view === 'marks' ? marks() : view === 'remaining' ? remaining(st) : view === 'next' ? next() : view === 'timer' ? timerView() : view === 'run' ? runView(st) : view === 'splits' ? splitsView() : summary(st);
+    const one = (v) => (v === 'bar' ? slim(st) : v === 'marks' ? marks() : v === 'remaining' ? remaining(st) : v === 'next' ? next() : v === 'timer' ? timerView() : v === 'run' ? runView(st) : v === 'splits' ? splitsView() : summary(st));
+    const html = waiting ? `<div class="panel"><div class="title">Dead God progress</div><p class="wait">Waiting for the next update from the runner…</p></div>`
+      : page ? `<div class="pagehead"><span>Dead God progress</span><small>Live · read-only</small></div>` + views.map(one).join('') : one(view);
     if (html !== lastHtml) {
       lastHtml = html;
       root.innerHTML = html;
@@ -154,9 +161,10 @@
   window.addEventListener('resize', placePin);
   if (document.fonts) document.fonts.ready.then(placePin);
 
-  if (!codeMatch) DG.onExternalChange((s) => { state = s; render(true); });
-  const room = p.get('room');
-  if (!codeMatch && room && DG.sync && DG.sync.validRoom(room)) {
+  if (watchKey) DG.sync.watch(watchKey, { onRemote: (s) => { state = s; waiting = false; render(!page); } });
+  if (!codeMatch && !watchKey) DG.onExternalChange((s) => { state = s; render(true); });
+  const room = p.get('room'); // older overlay links; new ones use &watch=
+  if (!codeMatch && !watchKey && room && DG.sync && DG.sync.validRoom(room)) {
     DG.sync.connect(room, {
       getLocal: () => state,
       onRemote: (s) => { state = s; DG.save(state, true); render(true); },
@@ -164,7 +172,7 @@
   }
   render(false);
   setInterval(() => { if (state.timer.running) render(false); }, 100);
-  if (views.length > 1) {
+  if (views.length > 1 && !page) {
     setInterval(() => {
       root.classList.add('fade');
       setTimeout(() => { vi = (vi + 1) % views.length; view = views[vi]; render(false); root.classList.remove('fade'); }, 450);

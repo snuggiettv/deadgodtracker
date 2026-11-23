@@ -48,3 +48,10 @@ Achievement names and unlock conditions are summarised from the
 [Binding of Isaac: Rebirth Wiki](https://bindingofisaacrebirth.wiki.gg/wiki/Achievements), CC BY-SA 3.0.
 The Binding of Isaac is © Edmund McMillen and Nicalis. Fan-made and not affiliated.
 No code, data or art from other trackers is used.
+
+## Viewer link (read-only)
+
+With sync on, *Copy viewer link* gives a page anyone can open to follow progress live without being able to change it.
+Editors post each update to a second ntfy topic, signed with an Ed25519 key derived from the room code
+([TweetNaCl](https://tweetnacl.js.org), public domain, in `js/vendor/`). The viewer link and the overlay link carry only the
+public key, so they can't be used to find the room or edit, and the viewer ignores anything not signed by an editor.
