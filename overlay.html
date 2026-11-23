@@ -67,6 +67,8 @@
   .rc.l1 { background: var(--silver); color: #222; text-shadow: none; }
   .rc.l2 { background: var(--gold); color: #2b1d00; text-shadow: none; box-shadow: 0 0 6px #f0c04f88; }
   .rfoot { display: flex; justify-content: space-between; gap: 16px; margin-top: 10px; font-size: 18px; color: var(--muted); }
+  #root { transition: opacity .45s ease; }
+  #root.fade { opacity: 0; }
   .flash { animation: flash 1.2s ease; }
   @keyframes flash { 0% { filter: brightness(1.8); } 100% { filter: none; } }
 </style>

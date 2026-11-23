@@ -167,18 +167,20 @@
       <div class="card">
         <h3>Build your overlay link</h3>
         <div class="row">
-          <label class="inline">View
-            <select id="ov-view">
-              <option value="summary">Summary panel</option>
-              <option value="bar">Slim progress bar</option>
-              <option value="marks">Completion mark grid</option>
-              <option value="remaining">What's left</option>
-              <option value="next">Next up (to-do)</option>
-              <option value="timer">Timer only</option>
-              <option value="run">This run (character + marks + timer)</option>
-              <option value="splits">Splits vs D0ggy / neonomi</option>
-            </select>
-          </label>
+          <div class="ov-views" id="ov-views">
+            <div class="hint">Views (tick more than one to rotate between them)</div>
+            <label class="chip"><input type="checkbox" name="ov-v" value="summary" checked> Summary panel</label>
+            <label class="chip"><input type="checkbox" name="ov-v" value="bar"> Slim progress bar</label>
+            <label class="chip"><input type="checkbox" name="ov-v" value="marks"> Completion mark grid</label>
+            <label class="chip"><input type="checkbox" name="ov-v" value="remaining"> What's left</label>
+            <label class="chip"><input type="checkbox" name="ov-v" value="next"> Next up (to-do)</label>
+            <label class="chip"><input type="checkbox" name="ov-v" value="timer"> Timer only</label>
+            <label class="chip"><input type="checkbox" name="ov-v" value="run"> This run (character + marks + timer)</label>
+            <label class="chip"><input type="checkbox" name="ov-v" value="splits"> Splits vs D0ggy / neonomi</label>
+          </div>
+        </div>
+        <div class="row">
+          <label class="inline" id="ov-cycle-wrap" style="display:none">Switch every <input type="number" id="ov-cycle" value="15" min="3" max="600" step="1" style="width:5em"> seconds</label>
           <label class="inline">Scale <input type="number" id="ov-scale" value="1" step="0.1" min="0.3" max="4"></label>
         </div>
         <div class="row">

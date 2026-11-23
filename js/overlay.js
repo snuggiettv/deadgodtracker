@@ -1,11 +1,16 @@
 /* Overlay page for OBS / Meld browser sources.
-   URL options: ?view=summary|bar|marks|remaining|next|timer|run|splits &count=4 &cmp=pb|neo &timer=0 &scale=1.5 &bg=1 &tainted=0
+   URL options: ?view=summary|bar|marks|remaining|next|timer|run|splits (comma-separate several to rotate) &cycle=15 &count=4 &cmp=pb|neo &timer=0 &scale=1.5 &bg=1 &tainted=0
    Progress comes from this browser's saved state, or from a #code=... snapshot. */
 (function () {
   'use strict';
   const DG = window.DG;
   const p = new URLSearchParams(location.search);
-  const view = p.get('view') || 'summary';
+  // view can list several views (view=summary,splits,run); the overlay then rotates through them every `cycle` seconds.
+  const VIEWS = ['summary', 'bar', 'marks', 'remaining', 'next', 'timer', 'run', 'splits'];
+  const views = (p.get('view') || 'summary').split(',').filter((v) => VIEWS.includes(v));
+  if (!views.length) views.push('summary');
+  const cycle = Math.min(600, Math.max(3, +p.get('cycle') || 15)) * 1000;
+  let vi = 0, view = views[0];
   const showTainted = p.get('tainted') !== '0';
   document.documentElement.style.setProperty('--scale', +p.get('scale') || 1);
   if (p.get('bg') === '1') document.body.classList.add('bg');
@@ -122,4 +127,10 @@
   }
   render(false);
   setInterval(() => { if (state.timer.running) render(false); }, 100);
+  if (views.length > 1) {
+    setInterval(() => {
+      root.classList.add('fade');
+      setTimeout(() => { vi = (vi + 1) % views.length; view = views[vi]; render(false); root.classList.remove('fade'); }, 450);
+    }, cycle);
+  }
 })();

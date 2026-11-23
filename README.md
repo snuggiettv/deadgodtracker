@@ -10,6 +10,7 @@ progress on stream with an OBS / Meld browser-source overlay. No build step, no 
   backup/restore and the overlay link builder.
 - `overlay.html` – the stream overlay. Options in the URL:
   - `view=summary` (default) · `bar` · `marks` · `remaining` · `next` (to-do, `&count=4`) · `timer` · `run` (current character + marks + timer) · `splits` (route splits vs D0ggy's PB, `&cmp=neo` for neonomi)
+  - List several views with commas (`view=summary,splits,run`) to rotate between them, with `&cycle=15` seconds per view
   - `timer=0` to hide the timer in the summary
   - `scale=1.5` to resize, `bg=1` for a dark backdrop (default is transparent), `tainted=0` to hide tainted rows in the grid
   - `room=…` to follow a sync room

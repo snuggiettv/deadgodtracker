@@ -223,3 +223,8 @@ table.splits tr.cur td { background: #ffffff08; }
 .split-total { margin: 6px 0; font-variant-numeric: tabular-nums; }
 .split-all { margin-top: 8px; } .split-all summary { cursor: pointer; color: var(--gold); }
 .tsplit { font-size: .8rem; font-variant-numeric: tabular-nums; white-space: nowrap; text-align: right; }
+/* overlay view picker */
+.ov-views { display: flex; flex-wrap: wrap; gap: 6px; width: 100%; }
+.ov-views .hint { width: 100%; }
+.ov-views .chip { display: inline-flex; align-items: center; gap: 6px; padding: 5px 10px; border: 1px solid var(--line); border-radius: 999px; background: var(--panel-2); cursor: pointer; font-size: .88rem; }
+.ov-views .chip:has(input:checked) { border-color: var(--gold); color: var(--gold); }

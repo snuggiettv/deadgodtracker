@@ -247,12 +247,15 @@
   const base = location.href.replace(/[#?].*$/, '').replace(/index\.html$/, '');
   function overlayUrl(withCode) {
     const p = new URLSearchParams();
-    p.set('view', $('#ov-view').value);
+    const views = [...document.querySelectorAll('input[name="ov-v"]:checked')].map((i) => i.value);
+    p.set('view', (views.length ? views : ['summary']).join(','));
+    $('#ov-cycle-wrap').style.display = views.length < 2 ? 'none' : '';
+    if (views.length > 1) p.set('cycle', Math.min(600, Math.max(3, Math.round(+$('#ov-cycle').value) || 15)));
     const sc = +$('#ov-scale').value; if (sc && sc !== 1) p.set('scale', sc);
     if ($('#ov-bg').checked) p.set('bg', '1');
     if (!$('#ov-tainted').checked) p.set('tainted', '0');
     if (!$('#ov-timer').checked) p.set('timer', '0');
-    if ($('#ov-view').value === 'splits' && cmp === 'neo') p.set('cmp', 'neo');
+    if (views.includes('splits') && cmp === 'neo') p.set('cmp', 'neo');
     const room = DG.sync.getRoom(); if (room && !withCode) p.set('room', room);
     return base + 'overlay.html?' + p.toString() + (withCode ? '#code=' + DG.encode(state) : '');
   }
@@ -264,7 +267,8 @@
     const fr = $('#ov-preview');
     if (fr.dataset.src !== url) { fr.dataset.src = url; fr.src = url; }
   }
-  ['#ov-view', '#ov-scale', '#ov-bg', '#ov-tainted', '#ov-timer'].forEach((s) => $(s).addEventListener('input', renderOverlayBuilder));
+  $('#ov-views').addEventListener('change', renderOverlayBuilder);
+  ['#ov-cycle', '#ov-scale', '#ov-bg', '#ov-tainted', '#ov-timer'].forEach((s) => $(s).addEventListener('input', renderOverlayBuilder));
   async function copy(text, msg) {
     try { await navigator.clipboard.writeText(text); toast(msg); } catch (_) { prompt('Copy this link:', text); }
   }
