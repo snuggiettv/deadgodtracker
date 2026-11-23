@@ -80,7 +80,8 @@
   .pin[hidden] { display: none; }
   .pin.below { bottom: auto; margin-top: 8px; } .pin.below.bl { transform-origin: top left; } .pin.below.br { transform-origin: top right; }
   /* viewer page (&page=1) */
-  body.page { overflow: auto; background: #120d0a; text-shadow: none; }
+  html.page, body.page { overflow: auto; overflow-x: hidden; height: auto; }
+  body.page { background: #120d0a; text-shadow: none; }
   .page #wrap { transform: none; display: block; max-width: 760px; margin: 0 auto; padding: 16px; }
   .page #root { display: grid; gap: 14px; width: 100%; }
   .page #root > * { min-width: 0; }

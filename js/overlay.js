@@ -16,7 +16,7 @@
   const showTainted = p.get('tainted') !== '0';
   document.documentElement.style.setProperty('--scale', +p.get('scale') || 1);
   if (p.get('bg') === '1' || page) document.body.classList.add('bg');
-  if (page) { document.body.classList.add('page'); document.title = 'Dead God progress'; }
+  if (page) { document.documentElement.classList.add('page'); document.body.classList.add('page'); document.title = 'Dead God progress'; }
 
   const codeMatch = /[#&]code=([\w-]+)/.exec(location.hash);
   const watchKey = !codeMatch && DG.sync && DG.sync.validWatch(p.get('watch')) ? p.get('watch') : null;
