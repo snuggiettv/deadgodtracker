@@ -141,13 +141,29 @@
       root.innerHTML = html;
       if (flash && root.firstElementChild) root.firstElementChild.classList.add('flash');
     }
-    placePin();
+    relayout();
   }
 
   // Keep a corner timer from covering the panel: a top corner pushes the panel down,
   // a bottom corner drops the timer just below the panel when the source is too short.
   const wrap = document.getElementById('wrap');
-  const scale = +p.get('scale') || 1;
+  const baseScale = +p.get('scale') || 1;
+  let scale = baseScale;
+  // Shrink the panel to fit the browser source when it's too narrow or short for it (never grows past &scale).
+  function fit() {
+    if (page) return;
+    document.documentElement.style.setProperty('--scale', baseScale);
+    wrap.style.paddingTop = '';
+    const r = wrap.getBoundingClientRect();
+    let h = r.height;
+    if (pin && pin.length === 2 && !pinEl.hidden) { // a corner timer that can't sit beside the panel needs its own row
+      const q = pinEl.getBoundingClientRect();
+      if (pin[1] === 'l' || r.width + q.width + 20 > innerWidth) h += q.height + 8; // the panel sits on the left
+    }
+    const f = Math.min(1, (innerWidth - 2) / r.width, (innerHeight - 2) / h);
+    scale = baseScale * (f > 0 ? f : 1);
+    document.documentElement.style.setProperty('--scale', scale);
+  }
   function placePin() {
     if (!pin || pin.length !== 2) return;
     wrap.style.paddingTop = ''; pinEl.classList.remove('below'); pinEl.style.top = '';
@@ -158,8 +174,15 @@
     if (pin[0] === 't') wrap.style.paddingTop = (10 + (q.height + 8) / scale) + 'px';
     else { pinEl.classList.add('below'); pinEl.style.top = r.bottom + 'px'; }
   }
-  window.addEventListener('resize', placePin);
-  if (document.fonts) document.fonts.ready.then(placePin);
+  function relayout() {
+    fit(); placePin();
+    if (page) return;
+    const r = wrap.getBoundingClientRect(); // a top-corner timer can push the panel down: shrink once more if needed
+    const f = Math.min(1, (innerHeight - 2) / r.bottom, (innerWidth - 2) / r.right);
+    if (f < 1) { scale *= f; document.documentElement.style.setProperty('--scale', scale); placePin(); }
+  }
+  window.addEventListener('resize', relayout);
+  if (document.fonts) document.fonts.ready.then(relayout);
 
   if (watchKey) DG.sync.watch(watchKey, { onRemote: (s) => { state = s; waiting = false; render(!page); } });
   if (!codeMatch && !watchKey) DG.onExternalChange((s) => { state = s; render(true); });
