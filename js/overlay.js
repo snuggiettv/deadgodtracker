@@ -1,5 +1,6 @@
 /* Overlay page for OBS / Meld browser sources.
-   URL options: ?view=summary|bar|marks|remaining|next|timer|run|splits|items (comma-separate several to rotate) &cycle=15 &count=4 &timer=0 &scale=1.5 &bg=1 &tainted=0
+   URL options: ?view=summary|bar|marks|remaining|next|timer|run|splits|items|colpage (comma-separate several to rotate) &cycle=15 &count=4 &timer=0 &scale=1.5 &bg=1 &tainted=0
+   colpage: one collection page at a time in the in-game 20x6 layout, next page every &pageevery=12 seconds; &missing=1 shows only what's left.
    &watch=<key> follows an editor's signed read-only feed; &page=1 shows the views stacked as a viewer page.
    Progress comes from this browser's saved state, a read-only feed, or a #code=... snapshot. */
 (function () {
@@ -7,7 +8,7 @@
   const DG = window.DG;
   const p = new URLSearchParams(location.search);
   // view can list several views (view=summary,splits,run); the overlay then rotates through them every `cycle` seconds.
-  const VIEWS = ['summary', 'bar', 'marks', 'remaining', 'next', 'timer', 'run', 'splits', 'items'];
+  const VIEWS = ['summary', 'bar', 'marks', 'remaining', 'next', 'timer', 'run', 'splits', 'items', 'colpage'];
   const page = p.get('page') === '1';
   const views = (p.get('view') || (page ? 'summary,run,splits,next,marks' : 'summary')).split(',').filter((v) => VIEWS.includes(v));
   if (!views.length) views.push('summary');
@@ -137,11 +138,36 @@
       <div class="rows">${rows}</div></div>`;
   }
 
+  // Collection page view: one in-game page at a time (20 x 6, missing items greyed), turning every `pageevery` seconds.
+  // With missing=1 it shows only the items still to find, in collection order, 40 per screen.
+  const SHEET_ROWS = Math.ceil(DG.COLLECTION.length / 20);
+  const pageEvery = Math.min(600, Math.max(3, +p.get('pageevery') || 12)) * 1000;
+  const missingOnly = p.get('missing') === '1';
+  const MISS_PER = 40;
+  let colTurn = 0; // advances every pageEvery; each render picks its page from it
+  const sprite = (it) => `<i class="ci" style="background-position:${(it.i % 20) / 19 * 100}% ${Math.floor(it.i / 20) / (SHEET_ROWS - 1) * 100}%"></i>`;
+  function colPageView() {
+    if (missingOnly) {
+      const left = DG.COLLECTION.filter((it) => !state.col[it.i]);
+      if (!left.length) return `<div class="panel colp"><div class="title">Collection page</div><div class="big">All ${DG.COLLECTION.length} found!</div></div>`;
+      const screens = Math.ceil(left.length / MISS_PER), k = colTurn % screens;
+      const cells = left.slice(k * MISS_PER, (k + 1) * MISS_PER).map((it) => `<span class="cc miss" title="${esc(it.name)}">${sprite(it)}</span>`).join('');
+      return `<div class="panel colp"><div class="chead"><span class="title">Still missing${screens > 1 ? ` · ${k + 1}/${screens}` : ''}</span><b>${left.length}<small> left</small></b></div>
+        <div class="cgrid m">${cells}</div></div>`;
+    }
+    const pg = (colTurn % DG.COL_PAGES) + 1;
+    const list = DG.COLLECTION.filter((it) => it.page === pg), got = list.filter((it) => state.col[it.i]).length;
+    const cells = list.map((it) => `<span class="cc${state.col[it.i] ? ' got' : ''}">${sprite(it)}</span>`).join('');
+    return `<div class="panel colp"><div class="chead"><span class="title">Collection · Page ${pg}/${DG.COL_PAGES}</span><b>${got}<small>/${list.length}</small></b></div>
+      <div class="cgrid">${cells}</div>${bar(got, list.length)}</div>`;
+  }
+  if (views.includes('colpage')) setInterval(() => { colTurn++; if (view === 'colpage' || page) render(false); }, pageEvery);
+
   let lastHtml = '';
   function render(flash) {
     renderPin();
     const st = DG.stats(state);
-    const one = (v) => (v === 'bar' ? slim(st) : v === 'marks' ? marks() : v === 'remaining' ? remaining(st) : v === 'next' ? next() : v === 'timer' ? timerView() : v === 'run' ? runView(st) : v === 'splits' ? splitsView() : v === 'items' ? itemsView(st) : summary(st));
+    const one = (v) => (v === 'bar' ? slim(st) : v === 'marks' ? marks() : v === 'remaining' ? remaining(st) : v === 'next' ? next() : v === 'timer' ? timerView() : v === 'run' ? runView(st) : v === 'splits' ? splitsView() : v === 'items' ? itemsView(st) : v === 'colpage' ? colPageView() : summary(st));
     const html = waiting ? `<div class="panel"><div class="title">Dead God progress</div><p class="wait">Waiting for the next update from the runner…</p></div>`
       : page ? `<div class="pagehead"><span>Dead God progress</span><small>Live</small></div>` + views.map(one).join('') : one(view);
     if (html !== lastHtml) {

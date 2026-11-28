@@ -6,7 +6,7 @@
 <title>Dead God Tracker</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Grandstander:wght@500;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/style.css?v=61c0220">
+<link rel="stylesheet" href="css/style.css?v=3cec9bb">
 </head>
 <body>
 <div class="wrap">
@@ -192,13 +192,19 @@
             <label class="chip"><input type="checkbox" name="ov-v" value="timer"> Timer only</label>
             <label class="chip"><input type="checkbox" name="ov-v" value="run"> This run (character + marks + timer)</label>
             <label class="chip"><input type="checkbox" name="ov-v" value="splits"> Splits</label>
-            <label class="chip"><input type="checkbox" name="ov-v" value="items"> Collection pages</label>
+            <label class="chip"><input type="checkbox" name="ov-v" value="items"> Collection progress</label>
+            <label class="chip"><input type="checkbox" name="ov-v" value="colpage"> Collection page (icons, turns pages)</label>
           </div>
         </div>
         <div class="row">
           <label class="inline" id="ov-cycle-wrap" style="display:none">Switch every <input type="number" id="ov-cycle" value="15" min="3" max="600" step="1" style="width:5em"> seconds</label>
           <label class="inline">Scale <input type="number" id="ov-scale" value="1" step="0.1" min="0.3" max="4"></label>
         </div>
+        <div class="row" id="ov-col-wrap" style="display:none">
+          <label class="inline">Turn the collection page every <input type="number" id="ov-pageevery" value="12" min="3" max="600" step="1" style="width:5em"> seconds</label>
+          <label class="inline"><input type="checkbox" id="ov-missing"> Missing items only</label>
+        </div>
+        <p class="hint" id="ov-col-hint" style="display:none">The collection page view is big: it suits a BRB, intermission or just-chatting scene, or a side panel (about 600 × 260 at scale 1). On the gameplay scene, <b>Collection progress</b> is the compact version.</p>
         <div class="row">
           <label class="inline"><input type="checkbox" id="ov-bg"> Dark backdrop (off = transparent)</label>
           <label class="inline"><input type="checkbox" id="ov-tainted" checked> Include tainted (grid)</label>
@@ -249,14 +255,14 @@
   </footer>
 </div>
 <div class="toast" id="toast"></div>
-<script src="data/achievements.js?v=61c0220"></script>
-<script src="data/collection.js?v=61c0220"></script>
-<script src="js/common.js?v=61c0220"></script>
-<script src="js/vendor/nacl.min.js?v=61c0220"></script>
-<script src="js/sync.js?v=61c0220"></script>
-<script src="data/route.js?v=61c0220"></script>
-<script src="js/todo.js?v=61c0220"></script>
-<script src="js/app.js?v=61c0220"></script>
-<script src="js/tour.js?v=61c0220"></script>
+<script src="data/achievements.js?v=3cec9bb"></script>
+<script src="data/collection.js?v=3cec9bb"></script>
+<script src="js/common.js?v=3cec9bb"></script>
+<script src="js/vendor/nacl.min.js?v=3cec9bb"></script>
+<script src="js/sync.js?v=3cec9bb"></script>
+<script src="data/route.js?v=3cec9bb"></script>
+<script src="js/todo.js?v=3cec9bb"></script>
+<script src="js/app.js?v=3cec9bb"></script>
+<script src="js/tour.js?v=3cec9bb"></script>
 </body>
 </html>
