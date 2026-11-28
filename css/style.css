@@ -228,3 +228,26 @@ table.splits tr.cur td { background: #ffffff08; }
 .ov-views .hint { width: 100%; }
 .ov-views .chip { display: inline-flex; align-items: center; gap: 6px; padding: 5px 10px; border: 1px solid var(--line); border-radius: 999px; background: var(--panel-2); cursor: pointer; font-size: .88rem; }
 .ov-views .chip:has(input:checked) { border-color: var(--gold); color: var(--gold); }
+
+/* collection page */
+.col-pages { display: flex; flex-wrap: wrap; gap: 4px; }
+.col-pages button { padding: 5px 10px; }
+.col-pages button small { color: var(--muted); font-variant-numeric: tabular-nums; }
+.col-pages button[aria-pressed=true] { border-color: var(--accent); background: #3a1d18; }
+.col-scroll { overflow-x: auto; background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 8px; }
+.col-grid { display: grid; grid-template-columns: repeat(20, minmax(30px, 1fr)); gap: 3px; min-width: 660px; }
+.col-grid.names { grid-template-columns: repeat(20, minmax(76px, 1fr)); min-width: 1560px; }
+.colc { position: relative; padding: 2px; border-radius: 6px; background: #120e0b; border: 1px solid var(--line); aspect-ratio: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; min-width: 0; }
+.colc.named { aspect-ratio: auto; min-height: 44px; }
+.colc .ci { display: block; width: 100%; max-width: 40px; aspect-ratio: 1; image-rendering: pixelated; filter: grayscale(1) brightness(.5); opacity: .8; }
+.colc .nm { font-size: .68rem; line-height: 1.15; color: var(--muted); text-align: center; overflow-wrap: anywhere; }
+.colc.got { background: #2a2410; border-color: var(--gold); }
+.colc.got .ci { filter: none; }
+.colc.got .nm { color: var(--text); }
+.colc.got::after { content: '✓'; position: absolute; right: 2px; top: 0; font-size: .62rem; color: var(--ok); font-weight: 700; }
+.col-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 6px; }
+.colc.wide { aspect-ratio: auto; flex-direction: row; justify-content: flex-start; gap: 8px; padding: 6px 10px; text-align: left; }
+.colc.wide .ci { width: 32px; flex: none; }
+.colc.wide .nm { font-size: .9rem; text-align: left; flex: 1; }
+.colc.wide small { color: var(--muted); font-size: .72rem; white-space: nowrap; }
+.group-title .col-count { font-variant-numeric: tabular-nums; }

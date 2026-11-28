@@ -47,6 +47,14 @@
     'Ultra Greedier': ['greed', 2], 'Delirium': ['delirium', 1], 'Mother': ['mother', 1], 'The Beast': ['beast', 1],
   };
 
+  // ---- collection page (Stats -> Items, "Stuff I Found") ----
+  const COL = window.DG_COLLECTION || { cols: 20, rows: 6, pages: [] };
+  const COLLECTION = [];
+  COL.pages.forEach((names, pi) => names.forEach((name, k) => COLLECTION.push({
+    i: COLLECTION.length, name, page: pi + 1, row: Math.floor(k / COL.cols) + 1, col: (k % COL.cols) + 1,
+  })));
+  const COL_TOTAL = COLLECTION.length || 717;
+
   const REP_PLUS_IDS = new Set([638, 639, 640, 641]);
 
   // ---- achievements ----
@@ -113,10 +121,11 @@
   // ---- state ----
   function emptyState() {
     return {
-      v: 1, ach: {}, marks: {}, items: 0, itemsTotal: 725, repPlus: true, autoLink: true, updated: 0,
+      v: 1, ach: {}, marks: {}, items: 0, itemsTotal: COL_TOTAL, repPlus: true, autoLink: true, updated: 0,
       current: null, // index of the character being played right now
       timer: emptyTimer(),
       splits: {}, // route step label -> timer ms when it was finished
+      col: {}, // collection page position -> 1 when found
     };
   }
   function emptyTimer() { return { running: false, elapsed: 0, startedAt: 0, sessions: 0, ended: false }; }
@@ -124,8 +133,19 @@
     if (!t || typeof t !== 'object') return emptyTimer();
     return { running: !!t.running, elapsed: Math.max(0, +t.elapsed || 0), startedAt: +t.startedAt || 0, sessions: Math.max(0, +t.sessions || 0), ended: !!t.ended };
   }
-  // 719 and 722 were earlier default item totals; the Repentance+ collection page shows 725.
-  const migrateTotal = (n) => (n === 719 || n === 722 ? 725 : n);
+  // 719, 722 and 725 were earlier default item totals; the collection page has 717 (6 pages, Repentance+ adds none).
+  const migrateTotal = (n) => (n === 719 || n === 722 || n === 725 ? COL_TOTAL : n);
+  function normCol(o) {
+    const out = {};
+    if (o && typeof o === 'object') for (const k of Object.keys(o)) if (o[k] && +k >= 0 && +k < COL_TOTAL && Number.isInteger(+k)) out[+k] = 1;
+    return out;
+  }
+  const colCount = (s) => Object.keys(s.col || {}).length;
+  // Ticks or unticks one collection item. While any are ticked, the item counter follows the ticks.
+  function setCollected(s, i, on) {
+    if (on) s.col[i] = 1; else delete s.col[i];
+    s.items = Math.min(colCount(s), s.itemsTotal);
+  }
   function normSplits(o) {
     const out = {};
     if (o && typeof o === 'object') for (const [k, v] of Object.entries(o)) if (Number.isFinite(+v) && +v >= 0) out[k] = +v;
@@ -146,6 +166,7 @@
       current: Number.isInteger(s.current) && s.current >= 0 && s.current < CHARACTERS.length ? s.current : null,
       timer: normTimer(s.timer),
       splits: normSplits(s.splits),
+      col: normCol(s.col),
     };
   }
   // Speedrun timer (milliseconds). Runs between Start and Pause; pausing is allowed only between runs.
@@ -230,7 +251,8 @@
   function pct(n, d, digits = 1) { return d ? ((100 * n) / d).toFixed(digits) : '0'; }
 
   window.DG = {
-    STORAGE_KEY, CHARACTERS, BOSSES, ACHIEVEMENTS, ACH_BY_ID, CATEGORIES, MARK_RULES,
+    STORAGE_KEY, COLLECTION, COL_COLS: COL.cols, COL_ROWS: COL.rows, COL_PAGES: COL.pages.length, colCount, setCollected,
+    CHARACTERS, BOSSES, ACHIEVEMENTS, ACH_BY_ID, CATEGORIES, MARK_RULES,
     load, save, normalize, emptyState, emptyTimer, timerMs, timerStart, timerPause, fmtTime, onExternalChange, getMark, setMark, applyRules,
     activeAchievements, stats, pct,
   };
@@ -247,8 +269,10 @@
     // v3 extras: splits as (route step index uint16, timer tenths uint32) pairs
     const labels = DG.splits ? DG.splits.labels : [];
     const sp = labels.map((l, i) => [i, s.splits && s.splits[l]]).filter((x) => x[1] != null);
-    const bytes = new Uint8Array(core + 20 + 2 + sp.length * 6);
-    bytes[0] = 3;
+    // v4 extras: collection page ticks as a bitset (uint16 count, then bits by page position)
+    const colN = DG.COLLECTION.length, colAt = core + 22 + sp.length * 6;
+    const bytes = new Uint8Array(colAt + 2 + Math.ceil(colN / 8));
+    bytes[0] = 4;
     bytes[1] = (s.repPlus ? 1 : 0) | (s.autoLink ? 2 : 0);
     bytes[2] = s.items >> 8; bytes[3] = s.items & 255;
     bytes[4] = s.itemsTotal >> 8; bytes[5] = s.itemsTotal & 255;
@@ -268,6 +292,8 @@
     dv.setUint16(18, Math.min(65535, s.timer.sessions));
     dv.setUint16(20, sp.length);
     sp.forEach(([i, ms], n) => { dv.setUint16(22 + n * 6, i); dv.setUint32(24 + n * 6, Math.min(4294967295, Math.round(ms / 100))); });
+    dv.setUint16(colAt - core, colN);
+    for (let i = 0; i < colN; i++) if (s.col && s.col[i]) bytes[colAt + 2 + (i >> 3)] |= 1 << (i & 7);
     let bin = ''; bytes.forEach((b) => (bin += String.fromCharCode(b)));
     return btoa(bin).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
   }
@@ -276,7 +302,7 @@
     if (code.startsWith('{')) return DG.normalize(JSON.parse(code)); // accept JSON backups too
     const bin = atob(code.replace(/-/g, '+').replace(/_/g, '/'));
     const b = Uint8Array.from(bin, (c) => c.charCodeAt(0));
-    if (b[0] < 1 || b[0] > 3) throw new Error('Unknown save code version');
+    if (b[0] < 1 || b[0] > 4) throw new Error('Unknown save code version');
     const s = DG.emptyState();
     s.repPlus = !!(b[1] & 1); s.autoLink = !!(b[1] & 2);
     s.items = (b[2] << 8) | b[3]; s.itemsTotal = DG.normalize({ itemsTotal: (b[4] << 8) | b[5] }).itemsTotal;
@@ -298,6 +324,11 @@
         for (let k = 0; k < n && o + 28 + k * 6 <= b.length; k++) {
           const l = labels[dv.getUint16(22 + k * 6)];
           if (l) s.splits[l] = dv.getUint32(24 + k * 6) * 100;
+        }
+        const colAt = o + 22 + n * 6;
+        if (b[0] >= 4 && b.length >= colAt + 2) {
+          const cn = Math.min(dv.getUint16(22 + n * 6), DG.COLLECTION.length);
+          for (let i = 0; i < cn && colAt + 2 + (i >> 3) < b.length; i++) if (b[colAt + 2 + (i >> 3)] & (1 << (i & 7))) s.col[i] = 1;
         }
       }
     }

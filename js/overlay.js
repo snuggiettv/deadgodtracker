@@ -1,5 +1,5 @@
 /* Overlay page for OBS / Meld browser sources.
-   URL options: ?view=summary|bar|marks|remaining|next|timer|run|splits (comma-separate several to rotate) &cycle=15 &count=4 &timer=0 &scale=1.5 &bg=1 &tainted=0
+   URL options: ?view=summary|bar|marks|remaining|next|timer|run|splits|items (comma-separate several to rotate) &cycle=15 &count=4 &timer=0 &scale=1.5 &bg=1 &tainted=0
    &watch=<key> follows an editor's signed read-only feed; &page=1 shows the views stacked as a viewer page.
    Progress comes from this browser's saved state, a read-only feed, or a #code=... snapshot. */
 (function () {
@@ -7,7 +7,7 @@
   const DG = window.DG;
   const p = new URLSearchParams(location.search);
   // view can list several views (view=summary,splits,run); the overlay then rotates through them every `cycle` seconds.
-  const VIEWS = ['summary', 'bar', 'marks', 'remaining', 'next', 'timer', 'run', 'splits'];
+  const VIEWS = ['summary', 'bar', 'marks', 'remaining', 'next', 'timer', 'run', 'splits', 'items'];
   const page = p.get('page') === '1';
   const views = (p.get('view') || (page ? 'summary,run,splits,next,marks' : 'summary')).split(',').filter((v) => VIEWS.includes(v));
   if (!views.length) views.push('summary');
@@ -126,11 +126,22 @@
       ${showTimer ? `<div class="stot"><span>Timer</span><b class="tm ${state.timer.running ? 'on' : ''}">${tms()}</b><i></i></div>` : ''}</div>`;
   }
 
+  // Collection pages: found / total for each of the 6 in-game pages.
+  function itemsView(st) {
+    const rows = Array.from({ length: DG.COL_PAGES }, (_, k) => {
+      const list = DG.COLLECTION.filter((it) => it.page === k + 1), got = list.filter((it) => state.col[it.i]).length;
+      return `<span>Page ${k + 1}</span><span class="n">${got}<small>/${list.length}</small></span>${bar(got, list.length)}`;
+    }).join('');
+    return `<div class="panel colv"><div class="title">Collection page</div>
+      <div class="big">${st.items}<small>/${st.itemsTotal}</small></div>${bar(st.items, st.itemsTotal)}
+      <div class="rows">${rows}</div></div>`;
+  }
+
   let lastHtml = '';
   function render(flash) {
     renderPin();
     const st = DG.stats(state);
-    const one = (v) => (v === 'bar' ? slim(st) : v === 'marks' ? marks() : v === 'remaining' ? remaining(st) : v === 'next' ? next() : v === 'timer' ? timerView() : v === 'run' ? runView(st) : v === 'splits' ? splitsView() : summary(st));
+    const one = (v) => (v === 'bar' ? slim(st) : v === 'marks' ? marks() : v === 'remaining' ? remaining(st) : v === 'next' ? next() : v === 'timer' ? timerView() : v === 'run' ? runView(st) : v === 'splits' ? splitsView() : v === 'items' ? itemsView(st) : summary(st));
     const html = waiting ? `<div class="panel"><div class="title">Dead God progress</div><p class="wait">Waiting for the next update from the runner…</p></div>`
       : page ? `<div class="pagehead"><span>Dead God progress</span><small>Live</small></div>` + views.map(one).join('') : one(view);
     if (html !== lastHtml) {

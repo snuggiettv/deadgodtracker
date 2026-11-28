@@ -184,6 +184,76 @@
     }));
   }
 
+  // ---------- collection page ----------
+  // Sprites come from img/collection.png (20 per row, 32 px each, in collection order). Without it, names show instead.
+  const SHEET = 'img/collection.png?v=61c0220', SHEET_ROWS = Math.ceil(DG.COLLECTION.length / 20);
+  let colIcons = false, colPage = 0, colBuiltKey = '';
+  try { colPage = Math.max(0, Math.min(DG.COL_PAGES, +localStorage.getItem('deadgod-tracker:colpage') || 0)); } catch (_) { /* ignore */ }
+  (function probeSheet() {
+    const im = new Image();
+    im.onload = () => { colIcons = true; $('#col-names-wrap').hidden = false; colBuiltKey = ''; renderCollection(); };
+    im.src = SHEET;
+  })();
+  const where = (it) => `Page ${it.page}, row ${it.row}, column ${it.col}`;
+  function sprite(it) {
+    const x = (it.i % 20) / 19 * 100, y = Math.floor(it.i / 20) / (SHEET_ROWS - 1) * 100;
+    return el('span', { class: 'ci', style: `background-image:url(${SHEET});background-size:2000% ${SHEET_ROWS * 100}%;background-position:${x}% ${y}%` });
+  }
+  function colCell(it, withName) {
+    const names = withName || !colIcons || $('#col-names').checked;
+    return el('button', {
+      class: 'colc' + (names ? ' named' : '') + (withName ? ' wide' : ''), dataset: { i: it.i, tip: it.name + ' · ' + where(it) },
+      'aria-label': it.name, 'aria-pressed': 'false',
+    }, colIcons ? sprite(it) : null, names ? el('span', { class: 'nm', textContent: it.name }) : null,
+    withName ? el('small', { textContent: `P${it.page} · R${it.row} · C${it.col}` }) : null);
+  }
+  function renderCollection() {
+    const q = $('#col-search').value.trim().toLowerCase(), missing = $('#col-missing').checked;
+    const pageCount = (p) => DG.COLLECTION.filter((it) => it.page === p && state.col[it.i]).length;
+    const pageSize = (p) => DG.COLLECTION.filter((it) => it.page === p).length;
+    $('#col-pages').replaceChildren(
+      el('button', { textContent: 'All', 'aria-pressed': String(colPage === 0), dataset: { p: 0 } },
+        el('small', { textContent: ` ${DG.colCount(state)}/${DG.COLLECTION.length}` })),
+      ...Array.from({ length: DG.COL_PAGES }, (_, k) => el('button', { textContent: 'Page ' + (k + 1), 'aria-pressed': String(colPage === k + 1), dataset: { p: k + 1 } },
+        el('small', { textContent: ` ${pageCount(k + 1)}/${pageSize(k + 1)}` }))));
+    // Rebuild the cells only when the filter changes; ticks just restyle them.
+    const key = [q, missing && JSON.stringify(state.col), colPage, colIcons, $('#col-names').checked].join('|');
+    if (key !== colBuiltKey) {
+      colBuiltKey = key;
+      const inPage = (it) => !colPage || it.page === colPage;
+      const out = [];
+      if (q || missing) {
+        const list = DG.COLLECTION.filter((it) => inPage(it) && (!q || it.name.toLowerCase().includes(q)) && (!missing || !state.col[it.i]));
+        out.push(list.length ? el('div', { class: 'col-list' }, list.map((it) => colCell(it, true)))
+          : el('p', { class: 'hint', textContent: missing && !q ? 'Nothing missing here.' : 'No item matches.' }));
+      } else {
+        for (let p = 1; p <= DG.COL_PAGES; p++) {
+          if (colPage && p !== colPage) continue;
+          const items = DG.COLLECTION.filter((it) => it.page === p);
+          out.push(el('h3', { class: 'group-title' }, 'Page ' + p, el('span', { class: 'col-count', dataset: { p } })),
+            el('div', { class: 'col-scroll' }, el('div', { class: 'col-grid' + (colIcons && !$('#col-names').checked ? '' : ' names') }, items.map((it) => colCell(it, false)))));
+        }
+      }
+      $('#col-out').replaceChildren(...out);
+    }
+    document.querySelectorAll('#col-out .colc').forEach((b) => { const on = !!state.col[b.dataset.i]; b.classList.toggle('got', on); b.setAttribute('aria-pressed', String(on)); });
+    document.querySelectorAll('#col-out .col-count').forEach((c) => (c.textContent = `${pageCount(+c.dataset.p)} / ${pageSize(+c.dataset.p)}`));
+  }
+  $('#col-out').addEventListener('click', (e) => {
+    const b = e.target.closest('.colc'); if (!b) return;
+    const i = +b.dataset.i, on = !state.col[i];
+    DG.setCollected(state, i, on);
+    commit();
+  });
+  $('#col-pages').addEventListener('click', (e) => {
+    const b = e.target.closest('button[data-p]'); if (!b) return;
+    colPage = +b.dataset.p; try { localStorage.setItem('deadgod-tracker:colpage', colPage); } catch (_) { /* ignore */ }
+    renderCollection();
+  });
+  $('#col-search').addEventListener('input', () => renderCollection());
+  $('#col-missing').addEventListener('change', () => renderCollection());
+  $('#col-names').addEventListener('change', () => renderCollection());
+
   // ---------- items & settings ----------
   function renderSettings() {
     if (document.activeElement !== $('#items')) $('#items').value = state.items;
@@ -195,7 +265,7 @@
   $('#items').addEventListener('change', (e) => { state.items = clampItems(+e.target.value); commit(); });
   $('#items-dec').addEventListener('click', () => { state.items = clampItems(state.items - 1); commit(); });
   $('#items-inc').addEventListener('click', () => { state.items = clampItems(state.items + 1); commit(); });
-  $('#items-total').addEventListener('change', (e) => { state.itemsTotal = Math.max(1, Math.round(+e.target.value) || 725); state.items = clampItems(state.items); commit(); });
+  $('#items-total').addEventListener('change', (e) => { state.itemsTotal = Math.max(1, Math.round(+e.target.value) || DG.COLLECTION.length); state.items = clampItems(state.items); commit(); });
   $('#rep-plus').addEventListener('change', (e) => { state.repPlus = e.target.checked; commit(); });
   $('#auto-link').addEventListener('change', (e) => {
     state.autoLink = e.target.checked;
@@ -401,7 +471,7 @@
   }
 
   // ---------- to-do ----------
-  const TAB_NAMES = { marks: 'Marks', achievements: 'List', items: 'Items', challenges: 'Challenges' };
+  const TAB_NAMES = { marks: 'Marks', achievements: 'List', items: 'Items', collection: 'Collection', challenges: 'Challenges' };
   function taskRow(t, showPhase) {
     const prog = t.progress ? el('div', { class: 'tprog' }, `${t.progress[0]} / ${t.progress[1]}`,
       el('div', { class: 'bar' }, el('i', { style: `width:${DG.pct(t.progress[0], t.progress[1])}%` }))) : null;
@@ -448,7 +518,7 @@
   function renderAll() {
     renderTimer(); renderCharPick(); renderRunPanel(); renderFocusCard(); renderSplits();
     renderTodo();
-    renderSummary(); renderMarks(); renderAchievements(); renderChallenges(); renderSettings();
+    renderSummary(); renderMarks(); renderAchievements(); renderChallenges(); renderCollection(); renderSettings();
     DG.splits.baseline(state);
   }
 
