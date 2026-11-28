@@ -6,10 +6,10 @@ progress on stream with an OBS / Meld browser-source overlay. No build step, no 
 
 ## Pages
 - `index.html` – the checklist (a first-visit tour explains each tab; the ? button replays it): a To-do roadmap of what to work on next, completion-mark grid (34 characters × 12 marks, normal/hard),
-  all 641 achievements with search and filters, the 45 challenges, collection-page item count,
+  all 641 achievements with search and filters, the 45 challenges, the collection page (all 717 items over 6 pages in in-game order, tickable),
   backup/restore and the overlay link builder.
 - `overlay.html` – the stream overlay. Options in the URL:
-  - `view=summary` (default) · `bar` · `marks` · `remaining` · `next` (to-do, `&count=4`) · `timer` · `run` (current character + marks + timer) · `splits` (your route splits)
+  - `view=summary` (default) · `bar` · `marks` · `remaining` · `next` (to-do, `&count=4`) · `timer` · `run` (current character + marks + timer) · `splits` (your route splits) · `items` (collection page progress, per page)
   - List several views with commas (`view=summary,splits,run`) to rotate between them, with `&cycle=15` seconds per view
   - `timer=0` to hide the timer in the summary
   - `pin=tr|tl|br|bl|top|bottom` keeps the speedrun timer on screen on every view (corners of the browser source, or above/below the panel). DeadGod% rules need a visible timer: use this, or a separate `view=timer` source
@@ -46,7 +46,10 @@ The To-do route is adapted from D0ggy's and neonomi's DeadGod% Repentance+ split
 
 Achievement names and unlock conditions are summarised from the
 [Binding of Isaac: Rebirth Wiki](https://bindingofisaacrebirth.wiki.gg/wiki/Achievements), CC BY-SA 3.0.
-The Binding of Isaac is © Edmund McMillen and Nicalis. Fan-made and not affiliated.
+The collection page order and names come from the wiki's
+[Collection Page (Repentance)](https://bindingofisaacrebirth.wiki.gg/wiki/Collection_Page_(Repentance)) (CC BY-NC-SA 3.0),
+and `img/collection.png` is a sheet of the game's item sprites as shown there.
+The Binding of Isaac and its art are © Edmund McMillen and Nicalis. Fan-made and not affiliated.
 No code, data or art from other trackers is used.
 
 ## Viewer link (read-only)

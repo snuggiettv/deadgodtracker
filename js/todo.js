@@ -120,7 +120,7 @@
       }
     }
     if (parts.length > 1) t.progress = [met, parts.length];
-    if (st.items) { t.progress = [stt.items, stt.itemsTotal]; t.tab = 'items'; }
+    if (st.items) { t.progress = [stt.items, stt.itemsTotal]; t.tab = 'collection'; }
     if (!st.marks.length && !st.items && !st.heart && st.achs.length === 1) t.achId = st.achs[0];
     if (st.heart) t.achId = HEART_AT[st.heart];
     t.detail = bits.join(' · ');
