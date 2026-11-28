@@ -9,7 +9,7 @@ progress on stream with an OBS / Meld browser-source overlay. No build step, no 
   all 641 achievements with search and filters, the 45 challenges, the collection page (all 717 items over 6 pages in in-game order, tickable),
   backup/restore and the overlay link builder.
 - `overlay.html` – the stream overlay. Options in the URL:
-  - `view=summary` (default) · `bar` · `marks` · `remaining` · `next` (to-do, `&count=4`) · `timer` · `run` (current character + marks + timer) · `splits` (your route splits) · `items` (collection page progress, per page)
+  - `view=summary` (default) · `bar` · `marks` · `remaining` · `next` (to-do, `&count=4`) · `timer` · `run` (current character + marks + timer) · `splits` (your route splits) · `items` (collection page progress, per page) · `colpage` (one collection page at a time with icons, missing ones greyed; next page every `&pageevery=12` seconds, `&missing=1` shows only what's left)
   - List several views with commas (`view=summary,splits,run`) to rotate between them, with `&cycle=15` seconds per view
   - `timer=0` to hide the timer in the summary
   - `pin=tr|tl|br|bl|top|bottom` keeps the speedrun timer on screen on every view (corners of the browser source, or above/below the panel). DeadGod% rules need a visible timer: use this, or a separate `view=timer` source

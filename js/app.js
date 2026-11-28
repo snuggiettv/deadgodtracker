@@ -326,6 +326,12 @@
     if (!$('#ov-tainted').checked) p.set('tainted', '0');
     if (!$('#ov-timer').checked) p.set('timer', '0');
     if ($('#ov-pin-on').checked) p.set('pin', $('#ov-pin').value);
+    const colp = views.includes('colpage');
+    $('#ov-col-wrap').style.display = colp ? '' : 'none'; $('#ov-col-hint').style.display = colp ? '' : 'none';
+    if (colp) {
+      const pe = Math.min(600, Math.max(3, Math.round(+$('#ov-pageevery').value) || 12)); if (pe !== 12) p.set('pageevery', pe);
+      if ($('#ov-missing').checked) p.set('missing', '1');
+    }
     $('#ov-pin-wrap').style.display = $('#ov-pin-on').checked ? '' : 'none';
     const room = DG.sync.getRoom(); if (room && !withCode) p.set('watch', DG.sync.watchKey(room)); // read-only feed, never the room
     return base + 'overlay.html?' + p.toString() + (withCode ? '#code=' + DG.encode(state) : '');
@@ -339,7 +345,7 @@
     if (fr.dataset.src !== url) { fr.dataset.src = url; fr.src = url; }
   }
   $('#ov-views').addEventListener('change', renderOverlayBuilder);
-  ['#ov-pin-on', '#ov-pin', '#ov-cycle', '#ov-scale', '#ov-bg', '#ov-tainted', '#ov-timer'].forEach((s) => $(s).addEventListener('input', renderOverlayBuilder));
+  ['#ov-pin-on', '#ov-pin', '#ov-pageevery', '#ov-missing', '#ov-cycle', '#ov-scale', '#ov-bg', '#ov-tainted', '#ov-timer'].forEach((s) => $(s).addEventListener('input', renderOverlayBuilder));
   async function copy(text, msg) {
     try { await navigator.clipboard.writeText(text); toast(msg); } catch (_) { prompt('Copy this link:', text); }
   }
