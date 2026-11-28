@@ -186,7 +186,7 @@
 
   // ---------- collection page ----------
   // Sprites come from img/collection.png (20 per row, 32 px each, in collection order). Without it, names show instead.
-  const SHEET = 'img/collection.png?v=b36288e', SHEET_ROWS = Math.ceil(DG.COLLECTION.length / 20);
+  const SHEET = 'img/collection.png?v=61c0220', SHEET_ROWS = Math.ceil(DG.COLLECTION.length / 20);
   let colIcons = false, colPage = 0, colBuiltKey = '';
   try { colPage = Math.max(0, Math.min(DG.COL_PAGES, +localStorage.getItem('deadgod-tracker:colpage') || 0)); } catch (_) { /* ignore */ }
   (function probeSheet() {
